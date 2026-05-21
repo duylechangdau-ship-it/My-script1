@@ -252,13 +252,56 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core - Đã thêm xóa Light!")
--- FixLag GUI - MENU TAB HOẠT ĐỘNG 100%
+-- FixLag GUI ĐẦY ĐỦ - TAB HOẠT ĐỘNG + TẤT CẢ CHỨC NĂNG + LƯU CÀI ĐẶT
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
 if not settings then return end
 
--- Thông báo đơn giản
+-- ============================================
+-- LƯU / TẢI CÀI ĐẶT (ĐƠN GIẢN)
+-- ============================================
+local saveFolder = playerGui:FindFirstChild("FixLagSaved")
+if not saveFolder then
+    saveFolder = Instance.new("Folder")
+    saveFolder.Name = "FixLagSaved"
+    saveFolder.Parent = playerGui
+end
+
+local function saveSettings()
+    for k, v in pairs(settings) do
+        if type(v) ~= "function" then
+            local val = Instance.new("StringValue")
+            val.Name = k
+            val.Value = tostring(v)
+            val.Parent = saveFolder
+        end
+    end
+end
+
+local function loadSettings()
+    local success = false
+    for _, obj in pairs(saveFolder:GetChildren()) do
+        if obj:IsA("StringValue") and settings[obj.Name] ~= nil then
+            local val = obj.Value
+            if val == "true" then settings[obj.Name] = true; success = true
+            elseif val == "false" then settings[obj.Name] = false; success = true
+            else local num = tonumber(val) if num then settings[obj.Name] = num; success = true end
+            end
+        end
+    end
+    if success then
+        -- Áp dụng lại các hiệu ứng đã lưu
+        if settings.Fullbright then _G.EnableFullbright() end
+        if settings.ExtremeLowGraphics then _G.ApplyExtremeLowGraphics() end
+        if settings.DisableSky then _G.DisableSky(true) end
+        if settings.MuteAllSounds then _G.ToggleMuteAllSounds(true) end
+    end
+    return success
+end
+loadSettings()
+
+-- Thông báo
 local function notify(msg)
     local g = Instance.new("ScreenGui", playerGui)
     local l = Instance.new("TextLabel", g)
@@ -273,9 +316,7 @@ end
 local sg = Instance.new("ScreenGui", playerGui)
 sg.Name = "FixLagMenu" sg.ResetOnSpawn = false
 
--- ============================================
--- ICON NỔI (GÓC PHẢI, KÉO THẢ ĐƯỢC)
--- ============================================
+-- Icon nổi (góc phải, kéo thả)
 local iconFrame = Instance.new("Frame", sg)
 iconFrame.Size = UDim2.new(0,60,0,60)
 iconFrame.Position = UDim2.new(1,-70,0.3,0)
@@ -294,9 +335,7 @@ iconBtn.BorderSizePixel = 0
 Instance.new("UICorner", iconBtn).CornerRadius = UDim.new(0,30)
 Instance.new("UIStroke", iconBtn).Thickness = 3
 
--- ============================================
 -- FPS (góc dưới phải)
--- ============================================
 local fpsF = Instance.new("Frame", sg)
 fpsF.Size = UDim2.new(0,150,0,40) fpsF.Position = UDim2.new(1,-160,1,-50)
 fpsF.BackgroundColor3 = Color3.fromRGB(0,0,0) fpsF.BackgroundTransparency = 0.5 fpsF.BorderSizePixel = 0
@@ -305,13 +344,11 @@ local fpsL = Instance.new("TextLabel", fpsF)
 fpsL.Size = UDim2.new(1,0,1,0) fpsL.BackgroundTransparency = 1
 fpsL.TextColor3 = Color3.fromRGB(0,255,150) fpsL.Font = Enum.Font.SourceSansBold fpsL.TextSize = 22 fpsL.Text = "FPS: --"
 
--- ============================================
--- MENU CHÍNH (GIỮA MÀN HÌNH, CÓ TAB)
--- ============================================
+-- Menu chính
 local menu = Instance.new("Frame", sg)
 menu.Size = UDim2.new(0,340,0,480)
 menu.Position = UDim2.new(0.5,-170,0.5,-240)
-menu.BackgroundColor3 = Color3.fromRGB(50,55,65) -- SÁNG HƠN
+menu.BackgroundColor3 = Color3.fromRGB(50,55,65)
 menu.BorderSizePixel = 0
 menu.Active = true
 menu.Draggable = true
@@ -361,7 +398,7 @@ for i = 1, 5 do
     sf.Size = UDim2.new(1,-20,0,380) sf.Position = UDim2.new(0,10,0,82)
     sf.BackgroundColor3 = Color3.fromRGB(65,70,80) sf.BorderSizePixel = 0
     sf.ScrollBarThickness = 4 sf.Visible = (i == 1)
-    sf.AutomaticCanvasSize = Enum.AutomaticSize.Y  -- TỰ ĐỘNG CO GIÃN
+    sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
     Instance.new("UICorner", sf).CornerRadius = UDim.new(0,8)
     tabFrames[i] = sf
 end
@@ -381,7 +418,7 @@ for i = 1, 5 do
 end
 
 -- ============================================
--- HÀM TẠO TOGGLE TRONG TAB
+-- HÀM TẠO TOGGLE
 -- ============================================
 local function addToggle(parent, text, setting, callback)
     local frame = Instance.new("Frame", parent)
@@ -413,10 +450,9 @@ local function addToggle(parent, text, setting, callback)
             iconBtn.BackgroundColor3 = newOn and Color3.fromRGB(0,200,80) or Color3.fromRGB(255,80,80)
         end
         if callback then callback(newOn) end
+        saveSettings()
         notify(text .. ": " .. (newOn and "BẬT" or "TẮT"))
     end)
-    
-    return btn
 end
 
 -- ============================================
@@ -445,16 +481,16 @@ local function addTextBox(parent, text, setting, min, max)
         local n = tonumber(box.Text)
         if n and n >= min and n <= max then
             settings[setting] = n
+            saveSettings()
             notify(text .. " = " .. n)
         else
             box.Text = tostring(settings[setting])
         end
     end)
-    return box
 end
 
 -- ============================================
--- NỘI DUNG TỪNG TAB
+-- NỘI DUNG TỪNG TAB (ĐẦY ĐỦ CHỨC NĂNG)
 -- ============================================
 -- Tab 1: Đồ họa
 addToggle(tabFrames[1], "Công tắc chính", "MasterEnabled")
@@ -465,22 +501,35 @@ addToggle(tabFrames[1], "Giảm đồ họa mạnh", "ExtremeLowGraphics", funct
 -- Tab 2: Zombie
 addToggle(tabFrames[2], "FOV Culling", "FOVCulling")
 addToggle(tabFrames[2], "Giảm chất lượng zombie", "PerformanceMode")
-addToggle(tabFrames[2], "Dọn rác", "CleanDebris")
+addToggle(tabFrames[2], "Dọn rác (máu, vỏ đạn)", "CleanDebris")
 
 -- Tab 3: Âm thanh
 addToggle(tabFrames[3], "Tắt hết âm thanh", "MuteAllSounds", function(on) _G.ToggleMuteAllSounds(on) end)
 
 -- Tab 4: Cài đặt
-addTextBox(tabFrames[4], "Khoảng cách", "MAX_DISTANCE", 50, 1000)
+addTextBox(tabFrames[4], "Khoảng cách hiển thị", "MAX_DISTANCE", 50, 1000)
 addTextBox(tabFrames[4], "Số zombie tối đa", "MAX_VISIBLE", 1, 50)
 addTextBox(tabFrames[4], "Góc nhìn (FOV)", "FOV_ANGLE", 30, 180)
+
+-- Nút Lưu & Áp dụng (ở cuối tab Cài đặt)
+local saveBtn = Instance.new("TextButton", tabFrames[4])
+saveBtn.Size = UDim2.new(1,-12,0,40) saveBtn.Position = UDim2.new(0,6,0,0)
+saveBtn.BackgroundColor3 = Color3.fromRGB(0,160,220) saveBtn.Text = "💾 LƯU & ÁP DỤNG"
+saveBtn.TextColor3 = Color3.fromRGB(255,255,255) saveBtn.Font = Enum.Font.SourceSansBold saveBtn.TextSize = 15
+saveBtn.BorderSizePixel = 0
+Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0,8)
+saveBtn.MouseButton1Click:Connect(function()
+    saveSettings()
+    loadSettings()
+    notify("✅ Đã lưu và áp dụng!")
+end)
 
 -- Tab 5: Nâng cao
 addToggle(tabFrames[5], "Ẩn người chơi xa", "HidePlayers")
 local tip = Instance.new("TextLabel", tabFrames[5])
 tip.Size = UDim2.new(1,-12,0,60) tip.Position = UDim2.new(0,6,0,0)
 tip.BackgroundColor3 = Color3.fromRGB(90,95,105) tip.BorderSizePixel = 0
-tip.Text = "💡 MẸO: Giảm Số zombie xuống 4\nvà Khoảng cách xuống 100"
+tip.Text = "💡 MẸO: Giảm Số zombie xuống 3-4 và Khoảng cách xuống 80-100 để FPS cao nhất"
 tip.TextColor3 = Color3.fromRGB(255,255,255) tip.Font = Enum.Font.SourceSansBold tip.TextSize = 13
 tip.TextXAlignment = Enum.TextXAlignment.Left
 Instance.new("UICorner", tip).CornerRadius = UDim.new(0,8)
@@ -497,9 +546,7 @@ closeBtn.MouseButton1Click:Connect(function()
     iconBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
 end)
 
--- ============================================
--- FPS
--- ============================================
+-- FPS loop
 local lt, fc = os.clock(), 0
 game:GetService("RunService").Heartbeat:Connect(function()
     fc += 1; local n = os.clock()
@@ -511,9 +558,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 
--- ============================================
--- HIỆN SỐ BALO
--- ============================================
+-- Hiện số balo
 for _, o in pairs(playerGui:GetDescendants()) do if o:IsA("TextLabel") then o.Visible = true end end
 playerGui.DescendantAdded:Connect(function(o)
     if o:IsA("TextLabel") then o.Visible = true
@@ -521,5 +566,5 @@ playerGui.DescendantAdded:Connect(function(o)
     end
 end)
 
-notify("✨ Fix Lag đã sẵn sàng!")
-print("✅ GUI TAB đã chạy")
+notify("✨ Fix Lag đầy đủ đã sẵn sàng!")
+print("✅ GUI TAB ĐẦY ĐỦ đã chạy")
