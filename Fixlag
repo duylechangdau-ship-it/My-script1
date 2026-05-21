@@ -252,7 +252,7 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core - Đã thêm xóa Light!")
--- FixLag GUI - KHÔNG LÀM MỜ ZOMBIE/NGƯỜI (DÙNG HUMANOIDROOTPART)
+-- FixLag GUI - TĂNG TỐC CHẠY LUÔN GIỮ 30, KHÔNG BỊ RESET
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
@@ -274,13 +274,11 @@ local function notify(msg)
     task.delay(2, function() l:Destroy() g:Destroy() end)
 end
 
--- Hàm kiểm tra part có thuộc về zombie/người chơi không (dùng HumanoidRootPart)
 local function isCharacterPart(part)
     local current = part
     while current and current ~= workspace do
         local parent = current.Parent
         if parent and parent:IsA("Model") then
-            -- Nếu Model có HumanoidRootPart -> đây là nhân vật (zombie hoặc người chơi)
             if parent:FindFirstChild("HumanoidRootPart") then
                 return true
             end
@@ -290,15 +288,12 @@ local function isCharacterPart(part)
     return false
 end
 
--- Làm mờ tường (bỏ qua tất cả nhân vật)
 local function applyWallTransparency(level)
     for _, p in ipairs(wallParts) do
         pcall(function() p.Transparency = 0 end)
     end
     table.clear(wallParts)
-
     if level == 0 then return end
-
     local val = ({0, 0.5, 0.7, 0.9})[level+1]
     for _, part in ipairs(workspace:GetDescendants()) do
         if part:IsA("BasePart") and not isCharacterPart(part) then
@@ -320,7 +315,6 @@ local function applyWallTransparency(level)
     end
 end
 
--- Part mới spawn cũng được kiểm tra
 workspace.DescendantAdded:Connect(function(part)
     if settings.WallTransparency > 0 and part:IsA("BasePart") and not isCharacterPart(part) then
         if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
@@ -338,6 +332,22 @@ workspace.DescendantAdded:Connect(function(part)
                 end)
             end
         end
+    end
+end)
+
+-- Vòng lặp duy trì tốc độ khi bật SpeedBoost
+task.spawn(function()
+    while true do
+        if settings.SpeedBoost then
+            local char = player.Character
+            if char then
+                local humanoid = char:FindFirstChild("Humanoid")
+                if humanoid and humanoid.WalkSpeed ~= 30 then
+                    humanoid.WalkSpeed = 30
+                end
+            end
+        end
+        task.wait(0.5) -- Kiểm tra mỗi 0.5 giây
     end
 end)
 
@@ -537,8 +547,19 @@ addTextBox(tabFrames[4], "Góc nhìn (FOV)", "FOV_ANGLE", 30, 180)
 
 addToggle(tabFrames[5], "Ẩn người chơi xa", "HidePlayers")
 addToggle(tabFrames[5], "Tăng tốc chạy (30)", "SpeedBoost", function(on)
-    local char = player.Character
-    if char and char:FindFirstChild("Humanoid") then char.Humanoid.WalkSpeed = on and 30 or 16 end
+    if on then
+        -- Khi bật, lập tức đặt tốc độ 30, vòng lặp sẽ duy trì
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 30
+        end
+    else
+        -- Khi tắt, đưa về mặc định 16
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = 16
+        end
+    end
 end)
 addWallButtons(tabFrames[5])
 
@@ -578,5 +599,5 @@ playerGui.DescendantAdded:Connect(function(o)
     end
 end)
 
-notify("✨ Tường mờ, zombie/người vẫn rõ hoàn toàn!")
-print("✅ GUI - Dùng HumanoidRootPart để bảo vệ nhân vật")
+notify("✨ Tăng tốc chạy giờ sẽ không bị reset!")
+print("✅ GUI - Tăng tốc chạy duy trì vĩnh viễn khi bật")
