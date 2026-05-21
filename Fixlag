@@ -252,11 +252,15 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core - Đã thêm xóa Light!")
--- FixLag GUI - SỬA LỖI ĐÈ NÚT + TỰ ĐỘNG XẾP DỌC
+-- FixLag GUI - SỬA LỖI ĐÈ NÚT + TĂNG TỐC MẶC ĐỊNH 30 + 3 MỨC ĐỘ PHÂN GIẢI
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
 if not settings then return end
+
+-- Thêm cài đặt mới vào settings nếu chưa có
+if settings.SpeedBoost == nil then settings.SpeedBoost = false end
+if settings.ResolutionLevel == nil then settings.ResolutionLevel = 0 end -- 0: tắt, 1: nhẹ, 2: vừa, 3: mạnh
 
 -- Thông báo nhẹ
 local function notify(msg)
@@ -358,7 +362,7 @@ for i = 1, 5 do
     sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
     Instance.new("UICorner", sf).CornerRadius = UDim.new(0,8)
 
-    -- Thêm UIListLayout để tự động sắp xếp nút trong tab
+    -- UIListLayout để tự động sắp xếp nút
     local layout = Instance.new("UIListLayout", sf)
     layout.Padding = UDim.new(0, 4)
     layout.FillDirection = Enum.FillDirection.Vertical
@@ -388,10 +392,9 @@ end
 local function addToggle(parent, text, setting, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1,-12,0,42)
-    -- Không đặt Position nữa, UIListLayout sẽ tự xếp
     frame.BackgroundColor3 = Color3.fromRGB(90,95,105) frame.BorderSizePixel = 0
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
-    frame.LayoutOrder = #parent:GetChildren() -- Đảm bảo thứ tự
+    frame.LayoutOrder = #parent:GetChildren()
     
     local lbl = Instance.new("TextLabel", frame)
     lbl.Size = UDim2.new(0.52,-8,1,0) lbl.Position = UDim2.new(0,6,0,0)
@@ -456,7 +459,89 @@ local function addTextBox(parent, text, setting, min, max)
 end
 
 -- ============================================
--- NỘI DUNG TỪNG TAB (ĐẦY ĐỦ CHỨC NĂNG)
+-- HÀM TẠO NÚT CHỌN MỨC ĐỘ PHÂN GIẢI
+-- ============================================
+local function addResolutionButtons(parent)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1,-12,0,90)
+    frame.BackgroundColor3 = Color3.fromRGB(90,95,105) frame.BorderSizePixel = 0
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+    frame.LayoutOrder = #parent:GetChildren()
+    
+    local title = Instance.new("TextLabel", frame)
+    title.Size = UDim2.new(1,-10,0,20) title.Position = UDim2.new(0,5,0,5)
+    title.BackgroundTransparency = 1 title.Text = "Giảm độ phân giải:"
+    title.TextColor3 = Color3.fromRGB(255,255,255) title.Font = Enum.Font.SourceSansBold title.TextSize = 13
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local levels = {"TẮT", "NHẸ", "VỪA", "MẠNH"}
+    local colors = {
+        Color3.fromRGB(150,150,150),
+        Color3.fromRGB(255,200,50),
+        Color3.fromRGB(255,150,0),
+        Color3.fromRGB(255,50,50)
+    }
+    
+    for i = 0, 3 do
+        local btn = Instance.new("TextButton", frame)
+        btn.Size = UDim2.new(0.22,-4,0,28) btn.Position = UDim2.new(0.03 + i*0.24, 2, 0, 40)
+        btn.BackgroundColor3 = colors[i+1] btn.Text = levels[i+1]
+        btn.TextColor3 = Color3.fromRGB(255,255,255) btn.Font = Enum.Font.SourceSansBold btn.TextSize = 12
+        btn.BorderSizePixel = 0
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+        
+        if settings.ResolutionLevel == i then
+            btn.BackgroundColor3 = Color3.fromRGB(0,200,100)
+        end
+        
+        btn.MouseButton1Click:Connect(function()
+            settings.ResolutionLevel = i
+            -- Cập nhật màu các nút
+            for j = 0, 3 do
+                local b = frame:FindFirstChild(levels[j+1].."Btn") or btn.Parent:FindFirstChild(levels[j+1])
+                if b and b:IsA("TextButton") then
+                    b.BackgroundColor3 = settings.ResolutionLevel == j and Color3.fromRGB(0,200,100) or colors[j+1]
+                end
+            end
+            -- Áp dụng độ phân giải
+            applyResolution(i)
+        end)
+        
+        btn.Name = levels[i+1].."Btn"
+    end
+end
+
+-- ============================================
+-- ÁP DỤNG ĐỘ PHÂN GIẢI
+-- ============================================
+local function applyResolution(level)
+    local lighting = game:GetService("Lighting")
+    if level == 0 then
+        -- Tắt, khôi phục
+        lighting.FogEnd = 200
+        lighting.FogStart = 0
+        lighting.Brightness = settings.Fullbright and 3 or 1.1
+    elseif level == 1 then
+        -- Nhẹ
+        lighting.FogEnd = 100
+        lighting.FogStart = 10
+        lighting.Brightness = 1
+    elseif level == 2 then
+        -- Vừa
+        lighting.FogEnd = 60
+        lighting.FogStart = 20
+        lighting.Brightness = 0.8
+    elseif level == 3 then
+        -- Mạnh
+        lighting.FogEnd = 30
+        lighting.FogStart = 25
+        lighting.Brightness = 0.5
+    end
+    notify("Độ phân giải: " .. ({"TẮT", "NHẸ", "VỪA", "MẠNH"})[level+1])
+end
+
+-- ============================================
+-- NỘI DUNG TỪNG TAB
 -- ============================================
 
 -- Tab 1: Đồ họa
@@ -490,40 +575,24 @@ addToggle(tabFrames[2], "Dọn rác (máu, vỏ đạn)", "CleanDebris")
 
 -- Tab 3: Âm thanh
 addToggle(tabFrames[3], "Tắt toàn bộ âm thanh", "MuteAllSounds", function(on) _G.ToggleMuteAllSounds(on) end)
-addToggle(tabFrames[3], "Tắt tiếng bước chân", "MuteFootsteps", function(on)
-    notify("Tính năng này cần tùy chỉnh theo game")
-end)
-addToggle(tabFrames[3], "Tắt tiếng súng", "MuteGunshots", function(on)
-    notify("Tính năng này cần tùy chỉnh theo game")
-end)
 
 -- Tab 4: Cài đặt
 addTextBox(tabFrames[4], "Khoảng cách hiển thị (studs)", "MAX_DISTANCE", 50, 1000)
 addTextBox(tabFrames[4], "Số zombie hiển thị tối đa", "MAX_VISIBLE", 1, 50)
 addTextBox(tabFrames[4], "Góc nhìn FOV (độ)", "FOV_ANGLE", 30, 180)
-addTextBox(tabFrames[4], "Độ sáng (Brightness)", "BRIGHTNESS", 0.5, 5)
 
 -- Tab 5: Nâng cao
 addToggle(tabFrames[5], "Ẩn người chơi xa", "HidePlayers")
-addToggle(tabFrames[5], "Tắt bóng người chơi khác", "NoPlayerShadows", function(on)
-    for _, p in pairs(game.Players:GetPlayers()) do
-        if p ~= player and p.Character then
-            for _, part in pairs(p.Character:GetDescendants()) do
-                if part:IsA("BasePart") then part.CastShadow = not on end
-            end
-        end
-    end
-end)
-addToggle(tabFrames[5], "Tăng tốc độ di chuyển", "SpeedBoost", function(on)
+addToggle(tabFrames[5], "Tăng tốc chạy (30)", "SpeedBoost", function(on)
     local char = player.Character
     if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = on and 24 or 16
+        char.Humanoid.WalkSpeed = on and 30 or 16
     end
 end)
+addResolutionButtons(tabFrames[5])
 
--- Mẹo (label)
 local tip = Instance.new("TextLabel", tabFrames[5])
-tip.Size = UDim2.new(1,-12,0,50) -- Không cần Position vì UIListLayout sẽ xếp tự động
+tip.Size = UDim2.new(1,-12,0,50)
 tip.BackgroundColor3 = Color3.fromRGB(90,95,105) tip.BorderSizePixel = 0
 tip.Text = "💡 MẸO: Giảm Số zombie xuống 3-4 và Khoảng cách xuống 80-100"
 tip.TextColor3 = Color3.fromRGB(255,255,255) tip.Font = Enum.Font.SourceSansBold tip.TextSize = 13
@@ -564,4 +633,4 @@ playerGui.DescendantAdded:Connect(function(o)
 end)
 
 notify("✨ Fix Lag đầy đủ đã sẵn sàng!")
-print("✅ GUI ĐẦY ĐỦ + TỰ XẾP đã chạy")
+print("✅ GUI + TĂNG TỐC 30 + 3 MỨC PHÂN GIẢI đã chạy")
