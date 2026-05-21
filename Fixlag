@@ -431,25 +431,31 @@ createToggle(tabFrames[2], {56}, "Dọn rác (máu, vỏ đạn)", "CleanDebris"
 local y3 = 0
 createToggle(tabFrames[3], {0}, "Tắt toàn bộ âm thanh", "MuteAllSounds", _G.ToggleMuteAllSounds)
 
--- Tab 4: Cài đặt (có ô nhập số + nút Lưu/Tải)
+-- Tab 4: Cài đặt (có ô nhập số + nút Lưu/Tải - ĐÃ SỬA VỊ TRÍ)
 local y4 = 0
 createTextBox(tabFrames[4], {0}, "Khoảng cách hiển thị", "MAX_DISTANCE", 50, 1000)
 createTextBox(tabFrames[4], {32}, "Số zombie tối đa", "MAX_VISIBLE", 1, 50)
 createTextBox(tabFrames[4], {64}, "Góc nhìn (FOV)", "FOV_ANGLE", 30, 180)
 
--- Nút Lưu/Tải cài đặt (nay chỉ là tải lại từ file, vì đã tự lưu khi thay đổi)
+-- Nút LƯU & ÁP DỤNG (đặt thấp hẳn xuống dưới)
 local loadBtn = Instance.new("TextButton")
-loadBtn.Size = UDim2.new(1,-10,0,30)
-loadBtn.Position = UDim2.new(0,5,0,y4+10)
-loadBtn.BackgroundColor3 = Color3.fromRGB(0,120,200)
-loadBtn.Text = "TẢI LẠI CÀI ĐẶT ĐÃ LƯU"
-loadBtn.TextColor3 = Color3.fromRGB(255,255,255)
+loadBtn.Size = UDim2.new(1, -10, 0, 30)
+loadBtn.Position = UDim2.new(0, 5, 0, 120)  -- Cố định ở vị trí Y=120
+loadBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+loadBtn.Text = "LƯU & ÁP DỤNG CÀI ĐẶT"
+loadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 loadBtn.Font = Enum.Font.SourceSansBold
 loadBtn.TextSize = 14
 loadBtn.Parent = tabFrames[4]
 
 loadBtn.MouseButton1Click:Connect(function()
-	loadSettings()
+	saveSettings()  -- Lưu lại tất cả cài đặt hiện tại
+	loadSettings()  -- Áp dụng ngay (gọi lại để kích hoạt fullbright, sky, etc.)
+	notify("✅ Đã lưu và áp dụng cài đặt!")
+end)
+
+-- Cập nhật CanvasSize cho tab Cài đặt (đủ cao để cuộn thấy nút)
+tabFrames[4].CanvasSize = UDim2.new(0, 0, 0, 170)
 	-- Cập nhật giao diện toggle cho khớp
 	for _, toggleInfo in pairs(getfenv(0).ToggleCache or {}) do
 		-- không cần, chúng ta sẽ refresh GUI? Đơn giản: thông báo và yêu cầu tắt mở lại menu.
