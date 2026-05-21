@@ -252,7 +252,7 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core - Đã thêm xóa Light!")
--- FixLag GUI - MENU CHỮ NHẬT CAO, NẰM GIỮA, HIỆN ĐỦ CHỨC NĂNG
+-- FixLag GUI - ICON GÓC PHẢI KÉO THẢ + MENU SÁNG RÕ
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
@@ -311,18 +311,30 @@ end
 local sg = Instance.new("ScreenGui", playerGui) sg.Name = "FixLagMenu" sg.ResetOnSpawn = false
 
 -- ============================================
--- ICON NỔI LUÔN HIỂN THỊ
+-- ICON NỔI GÓC PHẢI, KÉO THẢ ĐƯỢC
 -- ============================================
-local iconBtn = Instance.new("TextButton", sg)
-iconBtn.Size = UDim2.new(0,55,0,55) iconBtn.Position = UDim2.new(0.5,-27,0.5,-27)
-iconBtn.BackgroundColor3 = Color3.fromRGB(255,80,80) iconBtn.Text = "⚡"
-iconBtn.TextColor3 = Color3.fromRGB(255,255,255) iconBtn.Font = Enum.Font.SourceSansBold
-iconBtn.TextSize = 30 iconBtn.BorderSizePixel = 0 iconBtn.ZIndex = 100
-Instance.new("UICorner", iconBtn).CornerRadius = UDim.new(0,27)
+local iconDragger = Instance.new("Frame", sg)
+iconDragger.Size = UDim2.new(0,60,0,60)
+iconDragger.Position = UDim2.new(1,-70,0.3,0) -- góc phải, 30% từ trên xuống
+iconDragger.BackgroundTransparency = 1
+iconDragger.Active = true
+iconDragger.Draggable = true
+iconDragger.ZIndex = 200
+
+local iconBtn = Instance.new("TextButton", iconDragger)
+iconBtn.Size = UDim2.new(1,0,1,0)
+iconBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
+iconBtn.Text = "⚡"
+iconBtn.TextColor3 = Color3.fromRGB(255,255,255)
+iconBtn.Font = Enum.Font.SourceSansBold
+iconBtn.TextSize = 30
+iconBtn.BorderSizePixel = 0
+iconBtn.ZIndex = 200
+Instance.new("UICorner", iconBtn).CornerRadius = UDim.new(0,30)
 Instance.new("UIStroke", iconBtn).Thickness = 3
 
 -- ============================================
--- FPS
+-- FPS (góc dưới phải)
 -- ============================================
 local fpsF = Instance.new("Frame", sg)
 fpsF.Size = UDim2.new(0,160,0,45) fpsF.Position = UDim2.new(1,-170,1,-55)
@@ -333,20 +345,23 @@ local fpsL = Instance.new("TextLabel", fpsF) fpsL.Size = UDim2.new(1,0,1,0) fpsL
 fpsL.TextColor3 = Color3.fromRGB(0,255,150) fpsL.Font = Enum.Font.SourceSansBold fpsL.TextSize = 24 fpsL.Text = "FPS: --"
 
 -- ============================================
--- MENU CHÍNH: HÌNH CHỮ NHẬT, CAO, NẰM GIỮA
+-- MENU CHÍNH: SÁNG, RÕ, CHỮ NHẬT ĐỨNG
 -- ============================================
 local mainFrame = Instance.new("Frame", sg)
-mainFrame.Size = UDim2.new(0,340,0,520)  -- Rộng 340, cao 520
-mainFrame.Position = UDim2.new(0.5,-170,0.5,-260)  -- GIỮA MÀN HÌNH
-mainFrame.BackgroundColor3 = Color3.fromRGB(22,22,30) mainFrame.BorderSizePixel = 0
-mainFrame.Active = true mainFrame.Draggable = true mainFrame.Visible = false
+mainFrame.Size = UDim2.new(0,340,0,520)
+mainFrame.Position = UDim2.new(0.5,-170,0.5,-260)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40,40,50) -- NỀN SÁNG HƠN
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Visible = false
 mainFrame.ZIndex = 10
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0,16)
 Instance.new("UIStroke", mainFrame).Thickness = 2.5
 
 -- Thanh tiêu đề
 local titleBar = Instance.new("Frame", mainFrame)
-titleBar.Size = UDim2.new(1,0,0,44) titleBar.BackgroundColor3 = Color3.fromRGB(80,80,140) titleBar.BorderSizePixel = 0
+titleBar.Size = UDim2.new(1,0,0,44) titleBar.BackgroundColor3 = Color3.fromRGB(90,90,160) titleBar.BorderSizePixel = 0
 Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,16)
 local titleText = Instance.new("TextLabel", titleBar)
 titleText.Size = UDim2.new(1,-50,1,0) titleText.Position = UDim2.new(0,12,0,0)
@@ -390,7 +405,8 @@ for i=1,5 do
 	
 	local tf = Instance.new("ScrollingFrame", contentFrame)
 	tf.Size = UDim2.new(1,-4,1,-42) tf.Position = UDim2.new(0,2,0,42)
-	tf.BackgroundColor3 = Color3.fromRGB(35,35,40) tf.BackgroundTransparency = 0.15
+	tf.BackgroundColor3 = Color3.fromRGB(60,60,70) -- NỀN SÁNG
+	tf.BackgroundTransparency = 0.1
 	tf.ScrollBarThickness = 5 tf.Visible = (i==1) tf.CanvasSize = UDim2.new(0,0,0,350) tf.BorderSizePixel = 0
 	tf.ScrollingDirection = Enum.ScrollingDirection.Y
 	Instance.new("UICorner", tf).CornerRadius = UDim.new(0,8)
@@ -412,13 +428,14 @@ for i=1,5 do tabs[i].MouseButton1Click:Connect(function() switchTab(i) end) end
 local function createToggle(parent, y, text, setting, cb)
 	local f = Instance.new("Frame", parent)
 	f.Size = UDim2.new(1,-12,0,42) f.Position = UDim2.new(0,6,0,y[1])
-	f.BackgroundColor3 = Color3.fromRGB(55,55,68) f.BackgroundTransparency = 0.2 f.BorderSizePixel = 0
+	f.BackgroundColor3 = Color3.fromRGB(80,80,90) -- MÀU NỀN TOGGLE SÁNG
+	f.BackgroundTransparency = 0.1 f.BorderSizePixel = 0
 	Instance.new("UICorner", f).CornerRadius = UDim.new(0,10)
 	
 	local lbl = Instance.new("TextLabel", f)
 	lbl.Size = UDim2.new(0.52,-6,1,0) lbl.Position = UDim2.new(0,6,0,0)
 	lbl.BackgroundTransparency = 1 lbl.Text = text
-	lbl.TextColor3 = Color3.fromRGB(240,240,240) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 14
+	lbl.TextColor3 = Color3.fromRGB(255,255,255) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 14
 	lbl.TextXAlignment = Enum.TextXAlignment.Left
 	
 	local isOn = settings[setting]
@@ -449,18 +466,19 @@ end
 local function createTextBox(parent, y, text, setting, min, max)
 	local f = Instance.new("Frame", parent)
 	f.Size = UDim2.new(1,-12,0,46) f.Position = UDim2.new(0,6,0,y[1])
-	f.BackgroundColor3 = Color3.fromRGB(55,55,68) f.BackgroundTransparency = 0.2 f.BorderSizePixel = 0
+	f.BackgroundColor3 = Color3.fromRGB(80,80,90)
+	f.BackgroundTransparency = 0.1 f.BorderSizePixel = 0
 	Instance.new("UICorner", f).CornerRadius = UDim.new(0,10)
 	
 	local lbl = Instance.new("TextLabel", f)
 	lbl.Size = UDim2.new(0.48,-6,1,0) lbl.Position = UDim2.new(0,6,0,0)
 	lbl.BackgroundTransparency = 1 lbl.Text = text
-	lbl.TextColor3 = Color3.fromRGB(240,240,240) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 14
+	lbl.TextColor3 = Color3.fromRGB(255,255,255) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 14
 	lbl.TextXAlignment = Enum.TextXAlignment.Left
 	
 	local box = Instance.new("TextBox", f)
 	box.Size = UDim2.new(0.52,-6,0,36) box.Position = UDim2.new(0.48,3,0,5)
-	box.BackgroundColor3 = Color3.fromRGB(40,40,50) box.TextColor3 = Color3.fromRGB(255,255,130)
+	box.BackgroundColor3 = Color3.fromRGB(50,50,60) box.TextColor3 = Color3.fromRGB(255,255,130)
 	box.Font = Enum.Font.SourceSansBold box.TextSize = 16 box.Text = tostring(settings[setting])
 	box.BorderSizePixel = 0
 	Instance.new("UICorner", box).CornerRadius = UDim.new(0,8)
@@ -524,15 +542,15 @@ createToggle(tabFrames[5], {8}, "Ẩn người chơi xa", "HidePlayers", functio
 
 local info = Instance.new("TextLabel", tabFrames[5])
 info.Size = UDim2.new(1,-12,0,90) info.Position = UDim2.new(0,6,0,70)
-info.BackgroundColor3 = Color3.fromRGB(55,55,68) info.BackgroundTransparency = 0.2
+info.BackgroundColor3 = Color3.fromRGB(80,80,90) info.BackgroundTransparency = 0.1
 info.Text = "💡 MẸO TĂNG FPS:\n• Giảm Số zombie xuống 3-4\n• Giảm Khoảng cách xuống 80\n• Bật tất cả tab Đồ họa"
-info.TextColor3 = Color3.fromRGB(210,210,210) info.Font = Enum.Font.SourceSansBold info.TextSize = 14
+info.TextColor3 = Color3.fromRGB(255,255,255) info.Font = Enum.Font.SourceSansBold info.TextSize = 14
 info.TextXAlignment = Enum.TextXAlignment.Left info.BorderSizePixel = 0
 Instance.new("UICorner", info).CornerRadius = UDim.new(0,10)
 tabFrames[5].CanvasSize = UDim2.new(0,0,0,180)
 
 -- ============================================
--- ICON BẬT/TẮT MENU
+-- BẬT/TẮT MENU
 -- ============================================
 iconBtn.MouseButton1Click:Connect(function()
 	mainFrame.Visible = not mainFrame.Visible
@@ -575,4 +593,4 @@ end)
 
 switchTab(1)
 notify("✨ Fix Lag Pro đã sẵn sàng!")
-print("✅ GUI GIỮA MÀN HÌNH đã chạy")
+print("✅ GUI ICON GÓC PHẢI + MENU SÁNG đã chạy")
