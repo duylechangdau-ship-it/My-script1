@@ -252,7 +252,7 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core - Đã thêm xóa Light!")
--- FixLag GUI - MENU DỌC DÀI + ICON NỔI BẬT/TẮT + SỬA LỖI
+-- FixLag GUI - MENU CHỮ NHẬT CAO, NẰM GIỮA, HIỆN ĐỦ CHỨC NĂNG
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
@@ -311,63 +311,63 @@ end
 local sg = Instance.new("ScreenGui", playerGui) sg.Name = "FixLagMenu" sg.ResetOnSpawn = false
 
 -- ============================================
--- ICON NỔI LUÔN HIỂN THỊ (BẤM ĐỂ BẬT/TẮT MENU)
+-- ICON NỔI LUÔN HIỂN THỊ
 -- ============================================
 local iconBtn = Instance.new("TextButton", sg)
-iconBtn.Size = UDim2.new(0,55,0,55) iconBtn.Position = UDim2.new(1,-65,0.5,-27)
+iconBtn.Size = UDim2.new(0,55,0,55) iconBtn.Position = UDim2.new(0.5,-27,0.5,-27)
 iconBtn.BackgroundColor3 = Color3.fromRGB(255,80,80) iconBtn.Text = "⚡"
 iconBtn.TextColor3 = Color3.fromRGB(255,255,255) iconBtn.Font = Enum.Font.SourceSansBold
 iconBtn.TextSize = 30 iconBtn.BorderSizePixel = 0 iconBtn.ZIndex = 100
 Instance.new("UICorner", iconBtn).CornerRadius = UDim.new(0,27)
-local iconStroke = Instance.new("UIStroke", iconBtn) iconStroke.Thickness = 3 iconStroke.Color = Color3.fromRGB(255,255,255)
+Instance.new("UIStroke", iconBtn).Thickness = 3
 
 -- ============================================
--- FPS TO RÕ (góc dưới phải)
+-- FPS
 -- ============================================
 local fpsF = Instance.new("Frame", sg)
 fpsF.Size = UDim2.new(0,160,0,45) fpsF.Position = UDim2.new(1,-170,1,-55)
 fpsF.BackgroundColor3 = Color3.fromRGB(10,10,10) fpsF.BackgroundTransparency = 0.4 fpsF.BorderSizePixel = 0
 Instance.new("UICorner", fpsF).CornerRadius = UDim.new(0,10)
-local fpsS = Instance.new("UIStroke", fpsF) fpsS.Thickness = 2 fpsS.Color = Color3.fromRGB(0,255,200)
+Instance.new("UIStroke", fpsF).Thickness = 2
 local fpsL = Instance.new("TextLabel", fpsF) fpsL.Size = UDim2.new(1,0,1,0) fpsL.BackgroundTransparency = 1
 fpsL.TextColor3 = Color3.fromRGB(0,255,150) fpsL.Font = Enum.Font.SourceSansBold fpsL.TextSize = 24 fpsL.Text = "FPS: --"
 
 -- ============================================
--- MENU CHÍNH (DỌC, DÀI, KÉO THẢ ĐƯỢC)
+-- MENU CHÍNH: HÌNH CHỮ NHẬT, CAO, NẰM GIỮA
 -- ============================================
 local mainFrame = Instance.new("Frame", sg)
-mainFrame.Size = UDim2.new(0,280,0,500) mainFrame.Position = UDim2.new(1,-290,0,5)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20,20,25) mainFrame.BorderSizePixel = 0
-mainFrame.Active = true mainFrame.Draggable = true mainFrame.Visible = true
-mainFrame.ZIndex = 5
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0,14)
-local ms = Instance.new("UIStroke", mainFrame) ms.Thickness = 2.5 ms.Color = Color3.fromRGB(120,120,255)
+mainFrame.Size = UDim2.new(0,340,0,520)  -- Rộng 340, cao 520
+mainFrame.Position = UDim2.new(0.5,-170,0.5,-260)  -- GIỮA MÀN HÌNH
+mainFrame.BackgroundColor3 = Color3.fromRGB(22,22,30) mainFrame.BorderSizePixel = 0
+mainFrame.Active = true mainFrame.Draggable = true mainFrame.Visible = false
+mainFrame.ZIndex = 10
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0,16)
+Instance.new("UIStroke", mainFrame).Thickness = 2.5
 
 -- Thanh tiêu đề
 local titleBar = Instance.new("Frame", mainFrame)
-titleBar.Size = UDim2.new(1,0,0,40) titleBar.BackgroundColor3 = Color3.fromRGB(70,70,130) titleBar.BorderSizePixel = 0
-Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,14)
+titleBar.Size = UDim2.new(1,0,0,44) titleBar.BackgroundColor3 = Color3.fromRGB(80,80,140) titleBar.BorderSizePixel = 0
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,16)
 local titleText = Instance.new("TextLabel", titleBar)
-titleText.Size = UDim2.new(1,-50,1,0) titleText.Position = UDim2.new(0,10,0,0)
+titleText.Size = UDim2.new(1,-50,1,0) titleText.Position = UDim2.new(0,12,0,0)
 titleText.BackgroundTransparency = 1 titleText.Text = "⚡ FIX LAG PRO" titleText.TextColor3 = Color3.fromRGB(255,255,255)
-titleText.Font = Enum.Font.SourceSansBold titleText.TextSize = 18 titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Font = Enum.Font.SourceSansBold titleText.TextSize = 20 titleText.TextXAlignment = Enum.TextXAlignment.Left
 
--- Nút thu nhỏ menu (ẩn menu, icon vẫn hiện)
 local minimizeBtn = Instance.new("TextButton", titleBar)
-minimizeBtn.Size = UDim2.new(0,36,0,36) minimizeBtn.Position = UDim2.new(1,-38,0,2)
+minimizeBtn.Size = UDim2.new(0,38,0,38) minimizeBtn.Position = UDim2.new(1,-42,0,3)
 minimizeBtn.BackgroundColor3 = Color3.fromRGB(255,180,50) minimizeBtn.Text = "—"
 minimizeBtn.TextColor3 = Color3.fromRGB(255,255,255) minimizeBtn.Font = Enum.Font.SourceSansBold
-minimizeBtn.TextSize = 20 minimizeBtn.BorderSizePixel = 0
-Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0,18)
+minimizeBtn.TextSize = 22 minimizeBtn.BorderSizePixel = 0
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0,19)
 
--- Khung nội dung
+-- Nội dung
 local contentFrame = Instance.new("Frame", mainFrame)
-contentFrame.Size = UDim2.new(1,-16,1,-48) contentFrame.Position = UDim2.new(0,8,0,48)
+contentFrame.Size = UDim2.new(1,-20,1,-52) contentFrame.Position = UDim2.new(0,10,0,52)
 contentFrame.BackgroundTransparency = 1
 
 -- Tab row
 local tabRow = Instance.new("Frame", contentFrame)
-tabRow.Size = UDim2.new(1,0,0,34) tabRow.BackgroundTransparency = 1
+tabRow.Size = UDim2.new(1,0,0,36) tabRow.BackgroundTransparency = 1
 
 local tabColors = {
 	Color3.fromRGB(255,100,100),
@@ -381,18 +381,19 @@ local tabs, tabFrames = {}, {}
 local tabNames = {"🎨 Đồ họa", "🧟 Zombie", "🔊 Âm thanh", "⚙️ Cài đặt", "🚀 Nâng cao"}
 for i=1,5 do
 	local btn = Instance.new("TextButton", tabRow)
-	btn.Size = UDim2.new(1/5,-3,0,32) btn.Position = UDim2.new((i-1)/5,1.5,0,0)
+	btn.Size = UDim2.new(1/5,-4,0,34) btn.Position = UDim2.new((i-1)/5,2,0,0)
 	btn.BackgroundColor3 = tabColors[i] btn.Text = tabNames[i]
-	btn.TextColor3 = Color3.fromRGB(255,255,255) btn.Font = Enum.Font.SourceSansBold btn.TextSize = 11
+	btn.TextColor3 = Color3.fromRGB(255,255,255) btn.Font = Enum.Font.SourceSansBold btn.TextSize = 12
 	btn.BorderSizePixel = 0
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
 	tabs[i] = btn
 	
 	local tf = Instance.new("ScrollingFrame", contentFrame)
-	tf.Size = UDim2.new(1,0,1,-40) tf.Position = UDim2.new(0,0,0,40)
-	tf.BackgroundColor3 = Color3.fromRGB(30,30,35) tf.BackgroundTransparency = 0.2
-	tf.ScrollBarThickness = 4 tf.Visible = (i==1) tf.CanvasSize = UDim2.new(0,0,0,0) tf.BorderSizePixel = 0
-	Instance.new("UICorner", tf).CornerRadius = UDim.new(0,6)
+	tf.Size = UDim2.new(1,-4,1,-42) tf.Position = UDim2.new(0,2,0,42)
+	tf.BackgroundColor3 = Color3.fromRGB(35,35,40) tf.BackgroundTransparency = 0.15
+	tf.ScrollBarThickness = 5 tf.Visible = (i==1) tf.CanvasSize = UDim2.new(0,0,0,350) tf.BorderSizePixel = 0
+	tf.ScrollingDirection = Enum.ScrollingDirection.Y
+	Instance.new("UICorner", tf).CornerRadius = UDim.new(0,8)
 	tabFrames[i] = tf
 end
 
@@ -410,29 +411,29 @@ for i=1,5 do tabs[i].MouseButton1Click:Connect(function() switchTab(i) end) end
 -- Hàm tạo toggle
 local function createToggle(parent, y, text, setting, cb)
 	local f = Instance.new("Frame", parent)
-	f.Size = UDim2.new(1,-10,0,38) f.Position = UDim2.new(0,5,0,y[1])
-	f.BackgroundColor3 = Color3.fromRGB(50,50,60) f.BackgroundTransparency = 0.3 f.BorderSizePixel = 0
-	Instance.new("UICorner", f).CornerRadius = UDim.new(0,8)
+	f.Size = UDim2.new(1,-12,0,42) f.Position = UDim2.new(0,6,0,y[1])
+	f.BackgroundColor3 = Color3.fromRGB(55,55,68) f.BackgroundTransparency = 0.2 f.BorderSizePixel = 0
+	Instance.new("UICorner", f).CornerRadius = UDim.new(0,10)
 	
 	local lbl = Instance.new("TextLabel", f)
-	lbl.Size = UDim2.new(0.55,-8,1,0) lbl.Position = UDim2.new(0,4,0,0)
+	lbl.Size = UDim2.new(0.52,-6,1,0) lbl.Position = UDim2.new(0,6,0,0)
 	lbl.BackgroundTransparency = 1 lbl.Text = text
-	lbl.TextColor3 = Color3.fromRGB(230,230,230) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 14
+	lbl.TextColor3 = Color3.fromRGB(240,240,240) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 14
 	lbl.TextXAlignment = Enum.TextXAlignment.Left
 	
 	local isOn = settings[setting]
 	local btn = Instance.new("TextButton", f)
-	btn.Size = UDim2.new(0.45,-8,0,30) btn.Position = UDim2.new(0.55,4,0,4)
-	btn.BackgroundColor3 = isOn and Color3.fromRGB(0,190,90) or Color3.fromRGB(190,40,40)
+	btn.Size = UDim2.new(0.48,-6,0,34) btn.Position = UDim2.new(0.52,3,0,4)
+	btn.BackgroundColor3 = isOn and Color3.fromRGB(0,200,100) or Color3.fromRGB(200,50,50)
 	btn.Text = isOn and "✅ BẬT" or "❌ TẮT"
 	btn.TextColor3 = Color3.fromRGB(255,255,255) btn.Font = Enum.Font.SourceSansBold btn.TextSize = 14
 	btn.BorderSizePixel = 0
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
 	
 	btn.MouseButton1Click:Connect(function()
 		settings[setting] = not settings[setting]
 		local on = settings[setting]
-		btn.BackgroundColor3 = on and Color3.fromRGB(0,190,90) or Color3.fromRGB(190,40,40)
+		btn.BackgroundColor3 = on and Color3.fromRGB(0,200,100) or Color3.fromRGB(200,50,50)
 		btn.Text = on and "✅ BẬT" or "❌ TẮT"
 		if setting == "MasterEnabled" then
 			titleText.Text = on and "⚡ FIX LAG PRO (ON)" or "⚡ FIX LAG PRO (OFF)"
@@ -441,29 +442,28 @@ local function createToggle(parent, y, text, setting, cb)
 		if cb then cb(on) end
 		saveSettings()
 	end)
-	y[1] += 44
-	parent.CanvasSize = UDim2.new(0,0,0,y[1]+10)
+	y[1] += 50
 end
 
 -- Hàm tạo TextBox
 local function createTextBox(parent, y, text, setting, min, max)
 	local f = Instance.new("Frame", parent)
-	f.Size = UDim2.new(1,-10,0,42) f.Position = UDim2.new(0,5,0,y[1])
-	f.BackgroundColor3 = Color3.fromRGB(50,50,60) f.BackgroundTransparency = 0.3 f.BorderSizePixel = 0
-	Instance.new("UICorner", f).CornerRadius = UDim.new(0,8)
+	f.Size = UDim2.new(1,-12,0,46) f.Position = UDim2.new(0,6,0,y[1])
+	f.BackgroundColor3 = Color3.fromRGB(55,55,68) f.BackgroundTransparency = 0.2 f.BorderSizePixel = 0
+	Instance.new("UICorner", f).CornerRadius = UDim.new(0,10)
 	
 	local lbl = Instance.new("TextLabel", f)
-	lbl.Size = UDim2.new(0.5,-8,1,0) lbl.Position = UDim2.new(0,4,0,0)
+	lbl.Size = UDim2.new(0.48,-6,1,0) lbl.Position = UDim2.new(0,6,0,0)
 	lbl.BackgroundTransparency = 1 lbl.Text = text
-	lbl.TextColor3 = Color3.fromRGB(230,230,230) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 14
+	lbl.TextColor3 = Color3.fromRGB(240,240,240) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 14
 	lbl.TextXAlignment = Enum.TextXAlignment.Left
 	
 	local box = Instance.new("TextBox", f)
-	box.Size = UDim2.new(0.5,-8,0,32) box.Position = UDim2.new(0.5,4,0,5)
-	box.BackgroundColor3 = Color3.fromRGB(35,35,45) box.TextColor3 = Color3.fromRGB(255,255,120)
-	box.Font = Enum.Font.SourceSansBold box.TextSize = 15 box.Text = tostring(settings[setting])
+	box.Size = UDim2.new(0.52,-6,0,36) box.Position = UDim2.new(0.48,3,0,5)
+	box.BackgroundColor3 = Color3.fromRGB(40,40,50) box.TextColor3 = Color3.fromRGB(255,255,130)
+	box.Font = Enum.Font.SourceSansBold box.TextSize = 16 box.Text = tostring(settings[setting])
 	box.BorderSizePixel = 0
-	Instance.new("UICorner", box).CornerRadius = UDim.new(0,6)
+	Instance.new("UICorner", box).CornerRadius = UDim.new(0,8)
 	
 	box.FocusLost:Connect(function()
 		local n = tonumber(box.Text)
@@ -476,57 +476,60 @@ local function createTextBox(parent, y, text, setting, min, max)
 			notify("⚠️ "..min.."-"..max, 2.5)
 		end
 	end)
-	y[1] += 48
-	parent.CanvasSize = UDim2.new(0,0,0,y[1]+10)
+	y[1] += 54
 end
 
 -- ========== TAB 1: ĐỒ HỌA ==========
-local y1 = 5
-createToggle(tabFrames[1], {5}, "Công tắc chính", "MasterEnabled")
-createToggle(tabFrames[1], {49}, "Fullbright (Sáng)", "Fullbright", function(on)
+local y1 = 8
+createToggle(tabFrames[1], {8}, "Công tắc chính", "MasterEnabled")
+createToggle(tabFrames[1], {58}, "Fullbright (Sáng)", "Fullbright", function(on)
 	if on then _G.EnableFullbright() else _G.DisableFullbright() end notify(on and "✅ Bật" or "❌ Tắt")
 end)
-createToggle(tabFrames[1], {93}, "Tắt bầu trời", "DisableSky", function(on) _G.DisableSky(on) notify(on and "✅ Tắt" or "⚠️ Load lại") end)
-createToggle(tabFrames[1], {137}, "Giảm đồ họa siêu mạnh", "ExtremeLowGraphics", function(on)
+createToggle(tabFrames[1], {108}, "Tắt bầu trời", "DisableSky", function(on) _G.DisableSky(on) notify(on and "✅ Tắt" or "⚠️ Load lại") end)
+createToggle(tabFrames[1], {158}, "Giảm đồ họa siêu mạnh", "ExtremeLowGraphics", function(on)
 	if on then _G.ApplyExtremeLowGraphics() notify("✅ Bật") else notify("⚠️ Load lại") end
 end)
+tabFrames[1].CanvasSize = UDim2.new(0,0,0,220)
 
 -- ========== TAB 2: ZOMBIE ==========
-local y2 = 5
-createToggle(tabFrames[2], {5}, "FOV Culling (Ẩn zombie)", "FOVCulling", function(on) notify(on and "✅ Bật" or "❌ Tắt") end)
-createToggle(tabFrames[2], {49}, "Giảm chất lượng zombie", "PerformanceMode", function(on) notify(on and "✅ Bật" or "❌ Tắt") end)
-createToggle(tabFrames[2], {93}, "Dọn rác (máu, vỏ đạn)", "CleanDebris", function(on) notify(on and "✅ Bật" or "❌ Tắt") end)
+local y2 = 8
+createToggle(tabFrames[2], {8}, "FOV Culling (Ẩn zombie)", "FOVCulling", function(on) notify(on and "✅ Bật" or "❌ Tắt") end)
+createToggle(tabFrames[2], {58}, "Giảm chất lượng zombie", "PerformanceMode", function(on) notify(on and "✅ Bật" or "❌ Tắt") end)
+createToggle(tabFrames[2], {108}, "Dọn rác (máu, vỏ đạn)", "CleanDebris", function(on) notify(on and "✅ Bật" or "❌ Tắt") end)
+tabFrames[2].CanvasSize = UDim2.new(0,0,0,170)
 
 -- ========== TAB 3: ÂM THANH ==========
-local y3 = 5
-createToggle(tabFrames[3], {5}, "Tắt toàn bộ âm thanh", "MuteAllSounds", function(on) _G.ToggleMuteAllSounds(on) notify(on and "🔇 Tắt" or "🔊 Bật") end)
+local y3 = 8
+createToggle(tabFrames[3], {8}, "Tắt toàn bộ âm thanh", "MuteAllSounds", function(on) _G.ToggleMuteAllSounds(on) notify(on and "🔇 Tắt" or "🔊 Bật") end)
+tabFrames[3].CanvasSize = UDim2.new(0,0,0,80)
 
 -- ========== TAB 4: CÀI ĐẶT ==========
-local y4 = 5
-createTextBox(tabFrames[4], {5}, "Khoảng cách hiển thị", "MAX_DISTANCE", 50, 1000)
-createTextBox(tabFrames[4], {53}, "Số zombie tối đa", "MAX_VISIBLE", 1, 50)
-createTextBox(tabFrames[4], {101}, "Góc nhìn (FOV)", "FOV_ANGLE", 30, 180)
+local y4 = 8
+createTextBox(tabFrames[4], {8}, "Khoảng cách hiển thị", "MAX_DISTANCE", 50, 1000)
+createTextBox(tabFrames[4], {62}, "Số zombie tối đa", "MAX_VISIBLE", 1, 50)
+createTextBox(tabFrames[4], {116}, "Góc nhìn (FOV)", "FOV_ANGLE", 30, 180)
 
 local saveBtn = Instance.new("TextButton", tabFrames[4])
-saveBtn.Size = UDim2.new(1,-10,0,40) saveBtn.Position = UDim2.new(0,5,0,160)
-saveBtn.BackgroundColor3 = Color3.fromRGB(0,160,230) saveBtn.Text = "💾 LƯU & ÁP DỤNG"
+saveBtn.Size = UDim2.new(1,-12,0,42) saveBtn.Position = UDim2.new(0,6,0,180)
+saveBtn.BackgroundColor3 = Color3.fromRGB(0,170,240) saveBtn.Text = "💾 LƯU & ÁP DỤNG"
 saveBtn.TextColor3 = Color3.fromRGB(255,255,255) saveBtn.Font = Enum.Font.SourceSansBold saveBtn.TextSize = 16
 saveBtn.BorderSizePixel = 0
-Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0,10)
 saveBtn.MouseButton1Click:Connect(function() saveSettings() loadSettings() notify("✅ Đã lưu và áp dụng!") end)
-tabFrames[4].CanvasSize = UDim2.new(0,0,0,220)
+tabFrames[4].CanvasSize = UDim2.new(0,0,0,240)
 
 -- ========== TAB 5: NÂNG CAO ==========
-local y5 = 5
-createToggle(tabFrames[5], {5}, "Ẩn người chơi xa", "HidePlayers", function(on) notify(on and "✅ Bật" or "❌ Tắt") end)
+local y5 = 8
+createToggle(tabFrames[5], {8}, "Ẩn người chơi xa", "HidePlayers", function(on) notify(on and "✅ Bật" or "❌ Tắt") end)
 
 local info = Instance.new("TextLabel", tabFrames[5])
-info.Size = UDim2.new(1,-10,0,80) info.Position = UDim2.new(0,5,0,y5+10)
-info.BackgroundColor3 = Color3.fromRGB(50,50,60) info.BackgroundTransparency = 0.3
+info.Size = UDim2.new(1,-12,0,90) info.Position = UDim2.new(0,6,0,70)
+info.BackgroundColor3 = Color3.fromRGB(55,55,68) info.BackgroundTransparency = 0.2
 info.Text = "💡 MẸO TĂNG FPS:\n• Giảm Số zombie xuống 3-4\n• Giảm Khoảng cách xuống 80\n• Bật tất cả tab Đồ họa"
-info.TextColor3 = Color3.fromRGB(200,200,200) info.Font = Enum.Font.SourceSansBold info.TextSize = 13
+info.TextColor3 = Color3.fromRGB(210,210,210) info.Font = Enum.Font.SourceSansBold info.TextSize = 14
 info.TextXAlignment = Enum.TextXAlignment.Left info.BorderSizePixel = 0
-Instance.new("UICorner", info).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", info).CornerRadius = UDim.new(0,10)
+tabFrames[5].CanvasSize = UDim2.new(0,0,0,180)
 
 -- ============================================
 -- ICON BẬT/TẮT MENU
@@ -538,7 +541,6 @@ iconBtn.MouseButton1Click:Connect(function()
 		or Color3.fromRGB(150,150,150)
 end)
 
--- Nút thu nhỏ (giống icon)
 minimizeBtn.MouseButton1Click:Connect(function()
 	mainFrame.Visible = false
 	iconBtn.BackgroundColor3 = Color3.fromRGB(150,150,150)
@@ -573,4 +575,4 @@ end)
 
 switchTab(1)
 notify("✨ Fix Lag Pro đã sẵn sàng!")
-print("✅ GUI có icon nổi bật/tắt đã chạy")
+print("✅ GUI GIỮA MÀN HÌNH đã chạy")
