@@ -252,14 +252,16 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core - Đã thêm xóa Light!")
--- FixLag GUI - ĐÃ XÓA GIẢM ĐỘ PHÂN GIẢI
+-- FixLag GUI - KHÔNG LÀM MỜ ZOMBIE/NGƯỜI (DÙNG HUMANOIDROOTPART)
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
 if not settings then return end
 
--- Thêm cài đặt mới nếu chưa có
 if settings.SpeedBoost == nil then settings.SpeedBoost = false end
+if settings.WallTransparency == nil then settings.WallTransparency = 0 end
+
+local wallParts = {}
 
 local function notify(msg)
     local g = Instance.new("ScreenGui", playerGui)
@@ -272,18 +274,84 @@ local function notify(msg)
     task.delay(2, function() l:Destroy() g:Destroy() end)
 end
 
+-- Hàm kiểm tra part có thuộc về zombie/người chơi không (dùng HumanoidRootPart)
+local function isCharacterPart(part)
+    local current = part
+    while current and current ~= workspace do
+        local parent = current.Parent
+        if parent and parent:IsA("Model") then
+            -- Nếu Model có HumanoidRootPart -> đây là nhân vật (zombie hoặc người chơi)
+            if parent:FindFirstChild("HumanoidRootPart") then
+                return true
+            end
+        end
+        current = parent
+    end
+    return false
+end
+
+-- Làm mờ tường (bỏ qua tất cả nhân vật)
+local function applyWallTransparency(level)
+    for _, p in ipairs(wallParts) do
+        pcall(function() p.Transparency = 0 end)
+    end
+    table.clear(wallParts)
+
+    if level == 0 then return end
+
+    local val = ({0, 0.5, 0.7, 0.9})[level+1]
+    for _, part in ipairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and not isCharacterPart(part) then
+            if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
+                local mat = part.Material
+                if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
+                   mat == Enum.Material.Wood or mat == Enum.Material.WoodPlanks or
+                   mat == Enum.Material.Brick or mat == Enum.Material.Concrete or
+                   mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal or
+                   mat == Enum.Material.Marble or mat == Enum.Material.Slate or
+                   mat == Enum.Material.Sandstone or mat == Enum.Material.Cobblestone then
+                    pcall(function()
+                        part.Transparency = val
+                        table.insert(wallParts, part)
+                    end)
+                end
+            end
+        end
+    end
+end
+
+-- Part mới spawn cũng được kiểm tra
+workspace.DescendantAdded:Connect(function(part)
+    if settings.WallTransparency > 0 and part:IsA("BasePart") and not isCharacterPart(part) then
+        if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
+            local mat = part.Material
+            if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
+               mat == Enum.Material.Wood or mat == Enum.Material.WoodPlanks or
+               mat == Enum.Material.Brick or mat == Enum.Material.Concrete or
+               mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal or
+               mat == Enum.Material.Marble or mat == Enum.Material.Slate or
+               mat == Enum.Material.Sandstone or mat == Enum.Material.Cobblestone then
+                local val = ({0, 0.5, 0.7, 0.9})[settings.WallTransparency+1]
+                pcall(function()
+                    part.Transparency = val
+                    table.insert(wallParts, part)
+                end)
+            end
+        end
+    end
+end)
+
 local sg = Instance.new("ScreenGui", playerGui)
 sg.Name = "FixLagMenu" sg.ResetOnSpawn = false
 
--- Icon nổi
-local iconFrame = Instance.new("Frame", sg)
-iconFrame.Size = UDim2.new(0,60,0,60) iconFrame.Position = UDim2.new(1,-70,0.3,0)
-iconFrame.BackgroundTransparency = 1 iconFrame.Active = true iconFrame.Draggable = true
-local iconBtn = Instance.new("TextButton", iconFrame)
-iconBtn.Size = UDim2.new(1,0,1,0) iconBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
-iconBtn.Text = "⚡" iconBtn.TextColor3 = Color3.fromRGB(255,255,255)
-iconBtn.Font = Enum.Font.SourceSansBold iconBtn.TextSize = 30 iconBtn.BorderSizePixel = 0
-Instance.new("UICorner", iconBtn).CornerRadius = UDim.new(0,30)
+-- Icon kéo thả
+local iconBtn = Instance.new("TextButton", sg)
+iconBtn.Size = UDim2.new(0,70,0,70) iconBtn.Position = UDim2.new(1,-80,0.3,0)
+iconBtn.BackgroundColor3 = Color3.fromRGB(255,80,80) iconBtn.Text = "⚡"
+iconBtn.TextColor3 = Color3.fromRGB(255,255,255) iconBtn.Font = Enum.Font.SourceSansBold
+iconBtn.TextSize = 30 iconBtn.BorderSizePixel = 0
+iconBtn.Active = true iconBtn.Draggable = true iconBtn.ZIndex = 1000
+Instance.new("UICorner", iconBtn).CornerRadius = UDim.new(0,35)
 Instance.new("UIStroke", iconBtn).Thickness = 3
 
 -- FPS
@@ -297,7 +365,7 @@ fpsL.TextColor3 = Color3.fromRGB(0,255,150) fpsL.Font = Enum.Font.SourceSansBold
 
 -- Menu chính
 local menu = Instance.new("Frame", sg)
-menu.Size = UDim2.new(0,340,0,520) menu.Position = UDim2.new(0.5,-170,0.5,-260)
+menu.Size = UDim2.new(0,340,0,480) menu.Position = UDim2.new(0.5,-170,0.5,-240)
 menu.BackgroundColor3 = Color3.fromRGB(50,55,65) menu.BorderSizePixel = 0
 menu.Active = true menu.Draggable = true menu.Visible = false
 Instance.new("UICorner", menu).CornerRadius = UDim.new(0,14)
@@ -317,7 +385,7 @@ closeBtn.TextColor3 = Color3.fromRGB(255,255,255) closeBtn.Font = Enum.Font.Sour
 closeBtn.TextSize = 20 closeBtn.BorderSizePixel = 0
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,17)
 
--- Hàng tab
+-- Tab row
 local tabRow = Instance.new("Frame", menu)
 tabRow.Size = UDim2.new(1,-20,0,32) tabRow.Position = UDim2.new(0,10,0,46) tabRow.BackgroundTransparency = 1
 
@@ -340,7 +408,7 @@ for i = 1, 5 do
     tabs[i] = btn
 
     local sf = Instance.new("ScrollingFrame", menu)
-    sf.Size = UDim2.new(1,-20,0,380) sf.Position = UDim2.new(0,10,0,82)
+    sf.Size = UDim2.new(1,-20,0,360) sf.Position = UDim2.new(0,10,0,82)
     sf.BackgroundColor3 = Color3.fromRGB(65,70,80) sf.BorderSizePixel = 0
     sf.ScrollBarThickness = 4 sf.Visible = (i == 1)
     sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -351,17 +419,18 @@ for i = 1, 5 do
     tabFrames[i] = sf
 end
 
-local currentTab = 1
+local curTab = 1
 local function switchTab(idx)
     for i = 1, 5 do
         tabs[i].BackgroundTransparency = (i == idx) and 0 or 0.4
         tabs[i].TextColor3 = (i == idx) and Color3.fromRGB(255,255,255) or Color3.fromRGB(200,200,200)
         tabFrames[i].Visible = (i == idx)
     end
-    currentTab = idx
+    curTab = idx
 end
 for i = 1, 5 do tabs[i].MouseButton1Click:Connect(function() switchTab(i) end) end
 
+-- Toggle
 local function addToggle(parent, text, setting, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1,-12,0,42) frame.BackgroundColor3 = Color3.fromRGB(90,95,105) frame.BorderSizePixel = 0
@@ -391,6 +460,7 @@ local function addToggle(parent, text, setting, callback)
     end)
 end
 
+-- TextBox
 local function addTextBox(parent, text, setting, min, max)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1,-12,0,46) frame.BackgroundColor3 = Color3.fromRGB(90,95,105) frame.BorderSizePixel = 0
@@ -412,9 +482,39 @@ local function addTextBox(parent, text, setting, min, max)
     end)
 end
 
--- Tab 1: Đồ họa
+-- Nút làm mờ tường
+local function addWallButtons(parent)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1,-12,0,90) frame.BackgroundColor3 = Color3.fromRGB(90,95,105) frame.BorderSizePixel = 0
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8) frame.LayoutOrder = #parent:GetChildren()
+    local lbl = Instance.new("TextLabel", frame)
+    lbl.Size = UDim2.new(1,-10,0,20) lbl.Position = UDim2.new(0,5,0,5)
+    lbl.BackgroundTransparency = 1 lbl.Text = "Làm mờ tường:"
+    lbl.TextColor3 = Color3.fromRGB(255,255,255) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 13 lbl.TextXAlignment = Enum.TextXAlignment.Left
+    local levels = {"TẮT", "NHẸ", "VỪA", "MẠNH"}
+    local colors = {Color3.fromRGB(150,150,150), Color3.fromRGB(255,200,50), Color3.fromRGB(255,150,0), Color3.fromRGB(255,50,50)}
+    for i = 0, 3 do
+        local btn = Instance.new("TextButton", frame)
+        btn.Size = UDim2.new(0.22,-4,0,28) btn.Position = UDim2.new(0.03 + i*0.24, 2, 0, 40)
+        btn.BackgroundColor3 = settings.WallTransparency == i and Color3.fromRGB(0,200,100) or colors[i+1]
+        btn.Text = levels[i+1] btn.TextColor3 = Color3.fromRGB(255,255,255)
+        btn.Font = Enum.Font.SourceSansBold btn.TextSize = 12 btn.BorderSizePixel = 0
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+        btn.MouseButton1Click:Connect(function()
+            settings.WallTransparency = i
+            applyWallTransparency(i)
+            for j = 0, 3 do
+                local b = frame:FindFirstChild(levels[j+1].."Btn")
+                if b then b.BackgroundColor3 = (i == j) and Color3.fromRGB(0,200,100) or colors[j+1] end
+            end
+        end)
+        btn.Name = levels[i+1].."Btn"
+    end
+end
+
+-- Nội dung các tab
 addToggle(tabFrames[1], "Công tắc chính", "MasterEnabled")
-addToggle(tabFrames[1], "Fullbright (Sáng toàn bộ)", "Fullbright", function(on) if on then _G.EnableFullbright() else _G.DisableFullbright() end end)
+addToggle(tabFrames[1], "Fullbright (Sáng)", "Fullbright", function(on) if on then _G.EnableFullbright() else _G.DisableFullbright() end end)
 addToggle(tabFrames[1], "Tắt bầu trời", "DisableSky", function(on) _G.DisableSky(on) end)
 addToggle(tabFrames[1], "Giảm đồ họa siêu mạnh", "ExtremeLowGraphics", function(on) if on then _G.ApplyExtremeLowGraphics() end end)
 addToggle(tabFrames[1], "Xóa cỏ", "RemoveGrass", function(on) pcall(function() workspace.Terrain.Decoration = not on end) end)
@@ -425,40 +525,40 @@ addToggle(tabFrames[1], "Giảm chất lượng nước", "LowWater", function(o
     end)
 end)
 
--- Tab 2: Zombie
-addToggle(tabFrames[2], "FOV Culling (Ẩn zombie xa)", "FOVCulling")
+addToggle(tabFrames[2], "FOV Culling", "FOVCulling")
 addToggle(tabFrames[2], "Giảm chất lượng zombie", "PerformanceMode")
-addToggle(tabFrames[2], "Dọn rác (máu, vỏ đạn)", "CleanDebris")
+addToggle(tabFrames[2], "Dọn rác", "CleanDebris")
 
--- Tab 3: Âm thanh
 addToggle(tabFrames[3], "Tắt toàn bộ âm thanh", "MuteAllSounds", function(on) _G.ToggleMuteAllSounds(on) end)
 
--- Tab 4: Cài đặt
-addTextBox(tabFrames[4], "Khoảng cách hiển thị (studs)", "MAX_DISTANCE", 50, 1000)
-addTextBox(tabFrames[4], "Số zombie hiển thị tối đa", "MAX_VISIBLE", 1, 50)
-addTextBox(tabFrames[4], "Góc nhìn FOV (độ)", "FOV_ANGLE", 30, 180)
+addTextBox(tabFrames[4], "Khoảng cách hiển thị", "MAX_DISTANCE", 50, 1000)
+addTextBox(tabFrames[4], "Số zombie tối đa", "MAX_VISIBLE", 1, 50)
+addTextBox(tabFrames[4], "Góc nhìn (FOV)", "FOV_ANGLE", 30, 180)
 
--- Tab 5: Nâng cao
 addToggle(tabFrames[5], "Ẩn người chơi xa", "HidePlayers")
 addToggle(tabFrames[5], "Tăng tốc chạy (30)", "SpeedBoost", function(on)
     local char = player.Character
     if char and char:FindFirstChild("Humanoid") then char.Humanoid.WalkSpeed = on and 30 or 16 end
 end)
+addWallButtons(tabFrames[5])
 
 local tip = Instance.new("TextLabel", tabFrames[5])
 tip.Size = UDim2.new(1,-12,0,50) tip.BackgroundColor3 = Color3.fromRGB(90,95,105) tip.BorderSizePixel = 0
-tip.Text = "💡 MẸO: Giảm Số zombie xuống 3-4 và Khoảng cách xuống 80-100" tip.TextColor3 = Color3.fromRGB(255,255,255)
+tip.Text = "💡 MẸO: Giảm Số zombie xuống 3-4" tip.TextColor3 = Color3.fromRGB(255,255,255)
 tip.Font = Enum.Font.SourceSansBold tip.TextSize = 13 tip.TextXAlignment = Enum.TextXAlignment.Left
 Instance.new("UICorner", tip).CornerRadius = UDim.new(0,8) tip.LayoutOrder = #tabFrames[5]:GetChildren()
 
--- Bật/tắt menu
+-- Icon bật/tắt menu
 iconBtn.MouseButton1Click:Connect(function()
     menu.Visible = not menu.Visible
     iconBtn.BackgroundColor3 = menu.Visible and Color3.fromRGB(0,200,80) or Color3.fromRGB(255,80,80)
 end)
-closeBtn.MouseButton1Click:Connect(function() menu.Visible = false iconBtn.BackgroundColor3 = Color3.fromRGB(255,80,80) end)
+closeBtn.MouseButton1Click:Connect(function()
+    menu.Visible = false
+    iconBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
+end)
 
--- FPS
+-- FPS loop
 local lt, fc = os.clock(), 0
 game:GetService("RunService").Heartbeat:Connect(function()
     fc += 1; local n = os.clock()
@@ -478,5 +578,5 @@ playerGui.DescendantAdded:Connect(function(o)
     end
 end)
 
-notify("✨ Fix Lag đã sẵn sàng!")
-print("✅ GUI đã chạy - Đã xóa giảm độ phân giải")
+notify("✨ Tường mờ, zombie/người vẫn rõ hoàn toàn!")
+print("✅ GUI - Dùng HumanoidRootPart để bảo vệ nhân vật")
