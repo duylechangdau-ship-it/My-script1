@@ -252,7 +252,7 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core - Đã thêm xóa Light!")
--- FixLag GUI - ĐẦY ĐỦ CHỨC NĂNG + TIẾNG VIỆT (KHÔNG LƯU)
+-- FixLag GUI - SỬA LỖI ĐÈ NÚT + TỰ ĐỘNG XẾP DỌC
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
@@ -357,6 +357,14 @@ for i = 1, 5 do
     sf.ScrollBarThickness = 4 sf.Visible = (i == 1)
     sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
     Instance.new("UICorner", sf).CornerRadius = UDim.new(0,8)
+
+    -- Thêm UIListLayout để tự động sắp xếp nút trong tab
+    local layout = Instance.new("UIListLayout", sf)
+    layout.Padding = UDim.new(0, 4)
+    layout.FillDirection = Enum.FillDirection.Vertical
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
     tabFrames[i] = sf
 end
 
@@ -379,9 +387,11 @@ end
 -- ============================================
 local function addToggle(parent, text, setting, callback)
     local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1,-12,0,42) frame.Position = UDim2.new(0,6,0,0)
+    frame.Size = UDim2.new(1,-12,0,42)
+    -- Không đặt Position nữa, UIListLayout sẽ tự xếp
     frame.BackgroundColor3 = Color3.fromRGB(90,95,105) frame.BorderSizePixel = 0
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+    frame.LayoutOrder = #parent:GetChildren() -- Đảm bảo thứ tự
     
     local lbl = Instance.new("TextLabel", frame)
     lbl.Size = UDim2.new(0.52,-8,1,0) lbl.Position = UDim2.new(0,6,0,0)
@@ -416,9 +426,10 @@ end
 -- ============================================
 local function addTextBox(parent, text, setting, min, max)
     local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1,-12,0,46) frame.Position = UDim2.new(0,6,0,0)
+    frame.Size = UDim2.new(1,-12,0,46)
     frame.BackgroundColor3 = Color3.fromRGB(90,95,105) frame.BorderSizePixel = 0
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
+    frame.LayoutOrder = #parent:GetChildren()
     
     local lbl = Instance.new("TextLabel", frame)
     lbl.Size = UDim2.new(0.48,-8,1,0) lbl.Position = UDim2.new(0,6,0,0)
@@ -445,7 +456,7 @@ local function addTextBox(parent, text, setting, min, max)
 end
 
 -- ============================================
--- NỘI DUNG TỪNG TAB (ĐẦY ĐỦ CHỨC NĂNG MỚI)
+-- NỘI DUNG TỪNG TAB (ĐẦY ĐỦ CHỨC NĂNG)
 -- ============================================
 
 -- Tab 1: Đồ họa
@@ -480,7 +491,6 @@ addToggle(tabFrames[2], "Dọn rác (máu, vỏ đạn)", "CleanDebris")
 -- Tab 3: Âm thanh
 addToggle(tabFrames[3], "Tắt toàn bộ âm thanh", "MuteAllSounds", function(on) _G.ToggleMuteAllSounds(on) end)
 addToggle(tabFrames[3], "Tắt tiếng bước chân", "MuteFootsteps", function(on)
-    -- Tùy chỉnh theo game
     notify("Tính năng này cần tùy chỉnh theo game")
 end)
 addToggle(tabFrames[3], "Tắt tiếng súng", "MuteGunshots", function(on)
@@ -511,13 +521,15 @@ addToggle(tabFrames[5], "Tăng tốc độ di chuyển", "SpeedBoost", function(
     end
 end)
 
+-- Mẹo (label)
 local tip = Instance.new("TextLabel", tabFrames[5])
-tip.Size = UDim2.new(1,-12,0,50) tip.Position = UDim2.new(0,6,0,0)
+tip.Size = UDim2.new(1,-12,0,50) -- Không cần Position vì UIListLayout sẽ xếp tự động
 tip.BackgroundColor3 = Color3.fromRGB(90,95,105) tip.BorderSizePixel = 0
 tip.Text = "💡 MẸO: Giảm Số zombie xuống 3-4 và Khoảng cách xuống 80-100"
 tip.TextColor3 = Color3.fromRGB(255,255,255) tip.Font = Enum.Font.SourceSansBold tip.TextSize = 13
 tip.TextXAlignment = Enum.TextXAlignment.Left
 Instance.new("UICorner", tip).CornerRadius = UDim.new(0,8)
+tip.LayoutOrder = #tabFrames[5]:GetChildren()
 
 -- ============================================
 -- BẬT/TẮT MENU
@@ -552,4 +564,4 @@ playerGui.DescendantAdded:Connect(function(o)
 end)
 
 notify("✨ Fix Lag đầy đủ đã sẵn sàng!")
-print("✅ GUI ĐẦY ĐỦ TIẾNG VIỆT đã chạy")
+print("✅ GUI ĐẦY ĐỦ + TỰ XẾP đã chạy")
