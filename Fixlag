@@ -202,11 +202,65 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core đã sẵn sàng")
--- FixLag GUI (Menu + FPS + Thông báo + Ô nhập số)
+-- FixLag GUI (Menu + FPS + Thông báo + Ô nhập số + Lưu/Tải cài đặt - ĐÃ SỬA CANVAS)
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
 if not settings then return end
+
+-- Thư mục lưu cài đặt (tồn tại qua các lần chơi trong cùng phiên, và có thể lưu lâu dài nếu dùng DataStore, tạm dùng Folder)
+local saveFolder = playerGui:FindFirstChild("FixLagSavedSettings")
+if not saveFolder then
+	saveFolder = Instance.new("Folder")
+	saveFolder.Name = "FixLagSavedSettings"
+	saveFolder.Parent = playerGui
+end
+
+-- Hàm lưu cài đặt vào Folder (lưu tất cả key/value)
+local function saveSettings()
+	for k, v in pairs(settings) do
+		if type(v) ~= "function" then
+			local val = Instance.new("StringValue")
+			val.Name = k
+			val.Value = tostring(v)
+			val.Parent = saveFolder
+		end
+	end
+end
+
+-- Hàm tải cài đặt từ Folder (nếu có) và áp dụng
+local function loadSettings()
+	local success = false
+	for _, obj in pairs(saveFolder:GetChildren()) do
+		if obj:IsA("StringValue") and settings[obj.Name] ~= nil then
+			local val = obj.Value
+			if val == "true" then
+				settings[obj.Name] = true
+				success = true
+			elseif val == "false" then
+				settings[obj.Name] = false
+				success = true
+			else
+				local num = tonumber(val)
+				if num then
+					settings[obj.Name] = num
+					success = true
+				end
+			end
+		end
+	end
+	if success then
+		-- Áp dụng ngay các cài đặt đã lưu (nếu cần)
+		if settings.Fullbright then _G.EnableFullbright() end
+		if settings.ExtremeLowGraphics then _G.ApplyExtremeLowGraphics() end
+		if settings.DisableSky then _G.DisableSky(true) end
+		if settings.MuteAllSounds then _G.ToggleMuteAllSounds(true) end
+		notify("✅ Đã tải cài đặt đã lưu!")
+	end
+end
+
+-- Tải cài đặt khi script khởi động
+loadSettings()
 
 local function notify(message, dur)
 	dur = dur or 2
@@ -281,6 +335,7 @@ for i=1,4 do
 	local tf = Instance.new("ScrollingFrame")
 	tf.Size = UDim2.new(1,0,1,-30) tf.Position = UDim2.new(0,0,0,30)
 	tf.BackgroundTransparency = 1 tf.ScrollBarThickness = 3 tf.Visible = (i==1)
+	tf.CanvasSize = UDim2.new(0,0,0,0) -- sẽ cập nhật sau
 	tf.Parent = contentFrame tabFrames[i] = tf
 end
 
@@ -295,10 +350,11 @@ local function switchTab(idx)
 end
 for i=1,4 do tabs[i].MouseButton1Click:Connect(function() switchTab(i) end) end
 
-local function createToggle(parent, yRef, text, setting, cb)
+-- Hàm tạo toggle (có cập nhật CanvasSize của tab cha)
+local function createToggle(parentFrame, yRef, text, setting, cb)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1,0,0,25) frame.Position = UDim2.new(0,0,0,yRef[1])
-	frame.BackgroundTransparency = 1 frame.Parent = parent
+	frame.BackgroundTransparency = 1 frame.Parent = parentFrame
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(0.65,-5,1,0) label.BackgroundTransparency = 1 label.Text = text
 	label.TextColor3 = Color3.fromRGB(255,255,255) label.Font = Enum.Font.SourceSans label.TextSize = 13
@@ -316,15 +372,20 @@ local function createToggle(parent, yRef, text, setting, cb)
 		btn.Text = on and "BẬT" or "TẮT"
 		if setting == "MasterEnabled" then titleText.Text = on and "FIX LAG (BẬT)" or "FIX LAG (TẮT)" end
 		if cb then cb(on) end
+		-- Tự động lưu sau mỗi lần thay đổi
+		saveSettings()
 	end)
 	yRef[1] += 28
+	-- Cập nhật CanvasSize
+	parentFrame.CanvasSize = UDim2.new(0,0,0, yRef[1] + 10)
 	return btn
 end
 
-local function createTextBox(parent, yRef, text, setting, min, max)
+-- Hàm tạo TextBox (có cập nhật CanvasSize)
+local function createTextBox(parentFrame, yRef, text, setting, min, max)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1,0,0,30) frame.Position = UDim2.new(0,0,0,yRef[1])
-	frame.BackgroundTransparency = 1 frame.Parent = parent
+	frame.BackgroundTransparency = 1 frame.Parent = parentFrame
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(0.6,-5,1,0) label.BackgroundTransparency = 1 label.Text = text
 	label.TextColor3 = Color3.fromRGB(255,255,255) label.Font = Enum.Font.SourceSans label.TextSize = 13
@@ -335,10 +396,17 @@ local function createTextBox(parent, yRef, text, setting, min, max)
 	box.Font = Enum.Font.SourceSans box.TextSize = 13 box.Text = tostring(settings[setting]) box.Parent = frame
 	box.FocusLost:Connect(function()
 		local num = tonumber(box.Text)
-		if num and num >= min and num <= max then settings[setting] = num; notify("✅ Đã cập nhật "..text.." = "..num)
-		else box.Text = tostring(settings[setting]); notify("⚠️ Giá trị không hợp lệ ("..min.."-"..max..")", 2.5) end
+		if num and num >= min and num <= max then
+			settings[setting] = num
+			notify("✅ Đã cập nhật "..text.." = "..num)
+			saveSettings()
+		else
+			box.Text = tostring(settings[setting])
+			notify("⚠️ Giá trị không hợp lệ ("..min.."-"..max..")", 2.5)
+		end
 	end)
 	yRef[1] += 32
+	parentFrame.CanvasSize = UDim2.new(0,0,0, yRef[1] + 10)
 	return box
 end
 
@@ -363,23 +431,34 @@ createToggle(tabFrames[2], {56}, "Dọn rác (máu, vỏ đạn)", "CleanDebris"
 local y3 = 0
 createToggle(tabFrames[3], {0}, "Tắt toàn bộ âm thanh", "MuteAllSounds", _G.ToggleMuteAllSounds)
 
--- Tab 4: Cài đặt
+-- Tab 4: Cài đặt (có ô nhập số + nút Lưu/Tải)
 local y4 = 0
 createTextBox(tabFrames[4], {0}, "Khoảng cách hiển thị", "MAX_DISTANCE", 50, 1000)
 createTextBox(tabFrames[4], {32}, "Số zombie tối đa", "MAX_VISIBLE", 1, 50)
 createTextBox(tabFrames[4], {64}, "Góc nhìn (FOV)", "FOV_ANGLE", 30, 180)
 
--- Nút lưu cài đặt
-local saveBtn = Instance.new("TextButton")
-saveBtn.Size = UDim2.new(1,-10,0,30) saveBtn.Position = UDim2.new(0,5,0,y4+10)
-saveBtn.BackgroundColor3 = Color3.fromRGB(0,120,200) saveBtn.Text = "SAO CHÉP CÀI ĐẶT"
-saveBtn.TextColor3 = Color3.fromRGB(255,255,255) saveBtn.Font = Enum.Font.SourceSansBold saveBtn.TextSize = 14
-saveBtn.Parent = tabFrames[4]
-saveBtn.MouseButton1Click:Connect(function()
-	local str = "Settings hiện tại:\n"
-	for k,v in pairs(settings) do if type(v)~="function" then str = str .. k .. " = " .. tostring(v) .. "\n" end end
-	print(str) notify("📋 Đã in cài đặt ra Console (F9)", 3)
+-- Nút Lưu/Tải cài đặt (nay chỉ là tải lại từ file, vì đã tự lưu khi thay đổi)
+local loadBtn = Instance.new("TextButton")
+loadBtn.Size = UDim2.new(1,-10,0,30)
+loadBtn.Position = UDim2.new(0,5,0,y4+10)
+loadBtn.BackgroundColor3 = Color3.fromRGB(0,120,200)
+loadBtn.Text = "TẢI LẠI CÀI ĐẶT ĐÃ LƯU"
+loadBtn.TextColor3 = Color3.fromRGB(255,255,255)
+loadBtn.Font = Enum.Font.SourceSansBold
+loadBtn.TextSize = 14
+loadBtn.Parent = tabFrames[4]
+
+loadBtn.MouseButton1Click:Connect(function()
+	loadSettings()
+	-- Cập nhật giao diện toggle cho khớp
+	for _, toggleInfo in pairs(getfenv(0).ToggleCache or {}) do
+		-- không cần, chúng ta sẽ refresh GUI? Đơn giản: thông báo và yêu cầu tắt mở lại menu.
+	end
+	notify("🔄 Cài đặt đã được tải lại! Hãy tắt/mở lại menu để thấy thay đổi.")
 end)
+
+-- Cập nhật CanvasSize cho tab Cài đặt sau khi thêm nút
+tabFrames[4].CanvasSize = UDim2.new(0,0,0, y4 + 40)
 
 -- Thu gọn menu
 local expanded = true
@@ -409,5 +488,5 @@ playerGui.DescendantAdded:Connect(function(d)
 end)
 
 switchTab(1)
-notify("✨ Script đã sẵn sàng!")
-print("✅ GUI đã chạy")
+notify("✨ Script đã sẵn sàng! Tự động lưu cài đặt.")
+print("✅ GUI đã chạy với tự động lưu cài đặt")
