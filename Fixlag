@@ -252,55 +252,75 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core - Đã thêm xóa Light!")
--- GUI SIÊU CƠ BẢN - TEST
+-- TEST 3 NÚT RIÊNG BIỆT
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 local sg = Instance.new("ScreenGui")
-sg.Name = "TestMenu"
+sg.Name = "Test3Buttons"
 sg.ResetOnSpawn = false
 sg.Parent = playerGui
 
--- Icon nổi (màu đỏ)
-local icon = Instance.new("TextButton")
-icon.Size = UDim2.new(0, 55, 0, 55)
-icon.Position = UDim2.new(1, -65, 0.3, 0)
-icon.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Đỏ
-icon.Text = "⚡"
-icon.TextColor3 = Color3.fromRGB(255, 255, 255)
-icon.Font = Enum.Font.SourceSansBold
-icon.TextSize = 28
-icon.BorderSizePixel = 0
-icon.Parent = sg
+-- Nút 1: Master (góc trên phải)
+local btn1 = Instance.new("TextButton", sg)
+btn1.Size = UDim2.new(0, 120, 0, 40)
+btn1.Position = UDim2.new(1, -130, 0, 10)
+btn1.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+btn1.Text = "MASTER: TẮT"
+btn1.TextColor3 = Color3.fromRGB(255, 255, 255)
+btn1.Font = Enum.Font.SourceSansBold
+btn1.TextSize = 14
+btn1.BorderSizePixel = 0
 
--- Menu (màu xanh dương)
-local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 300, 0, 400)
-menu.Position = UDim2.new(0.5, -150, 0.5, -200)
-menu.BackgroundColor3 = Color3.fromRGB(50, 100, 200)  -- Xanh dương
-menu.BorderSizePixel = 0
-menu.Visible = false  -- Ẩn ban đầu
-menu.Parent = sg
+local masterOn = false
+btn1.MouseButton1Click:Connect(function()
+	masterOn = not masterOn
+	btn1.BackgroundColor3 = masterOn and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
+	btn1.Text = masterOn and "MASTER: BẬT" or "MASTER: TẮT"
+end)
 
--- Thêm chữ vào menu để biết nó hiện
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1, 0, 0, 40)
-label.Position = UDim2.new(0, 0, 0, 180)
-label.BackgroundTransparency = 1
-label.Text = "MENU ĐANG MỞ"
-label.TextColor3 = Color3.fromRGB(255, 255, 255)
-label.Font = Enum.Font.SourceSansBold
-label.TextSize = 24
-label.Parent = menu
+-- Nút 2: FOV Culling (dưới nút 1)
+local btn2 = Instance.new("TextButton", sg)
+btn2.Size = UDim2.new(0, 120, 0, 40)
+btn2.Position = UDim2.new(1, -130, 0, 55)
+btn2.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+btn2.Text = "FOV: TẮT"
+btn2.TextColor3 = Color3.fromRGB(255, 255, 255)
+btn2.Font = Enum.Font.SourceSansBold
+btn2.TextSize = 14
+btn2.BorderSizePixel = 0
 
--- Khi bấm icon: bật/tắt menu, đổi màu icon
-icon.MouseButton1Click:Connect(function()
-	menu.Visible = not menu.Visible
-	if menu.Visible then
-		icon.BackgroundColor3 = Color3.fromRGB(0, 200, 0)  -- Xanh lá
-	else
-		icon.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Đỏ
+local fovOn = false
+btn2.MouseButton1Click:Connect(function()
+	fovOn = not fovOn
+	btn2.BackgroundColor3 = fovOn and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
+	btn2.Text = fovOn and "FOV: BẬT" or "FOV: TẮT"
+end)
+
+-- Nút 3: FPS (góc dưới phải)
+local btn3 = Instance.new("TextLabel", sg)
+btn3.Size = UDim2.new(0, 120, 0, 30)
+btn3.Position = UDim2.new(1, -130, 1, -40)
+btn3.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+btn3.BackgroundTransparency = 0.5
+btn3.TextColor3 = Color3.fromRGB(0, 255, 0)
+btn3.Text = "FPS: --"
+btn3.Font = Enum.Font.SourceSansBold
+btn3.TextSize = 16
+btn3.BorderSizePixel = 0
+
+-- Cập nhật FPS
+local lt = os.clock()
+local fc = 0
+game:GetService("RunService").Heartbeat:Connect(function()
+	fc += 1
+	local n = os.clock()
+	if n - lt >= 0.5 then
+		local fps = math.floor(fc / (n - lt))
+		btn3.Text = "FPS: " .. fps
+		fc = 0
+		lt = n
 	end
 end)
 
-print("✅ Test menu đã chạy")
+print("✅ 3 nút test đã tạo")
