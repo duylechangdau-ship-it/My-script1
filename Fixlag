@@ -1,4 +1,4 @@
--- FixLag Core - THÊM XÓA LIGHT (AN TOÀN VỚI FULLBRIGHT)
+-- FixLag Core - TÍCH HỢP XÓA KHỐI MỜ VÀO EXTREME LOW GRAPHICS
 local Players = game:GetService("Players")
 local Workspace = game.Workspace
 local Lighting = game.Lighting
@@ -28,6 +28,38 @@ local zombieCache = {}
 local lastZombieScan = 0
 local ZOMBIE_SCAN_INTERVAL = 5
 local processedZombies = {}
+local hiddenFogParts = {} -- Lưu các part mờ đã bị ẩn
+
+-- Hàm ẩn các khối mờ (dùng trong Extreme Low Graphics)
+local function hideFogVolumes()
+	for _, part in ipairs(Workspace:GetDescendants()) do
+		if part:IsA("BasePart") then
+			-- Bỏ qua nhân vật (zombie, người chơi)
+			local model = part:FindFirstAncestorOfClass("Model")
+			if model and model:FindFirstChild("Humanoid") then
+				continue
+			end
+			if Players:GetPlayerFromCharacter(part.Parent) then
+				continue
+			end
+			-- Chỉ ẩn các part có độ trong suốt từ 0.2 đến 0.99
+			if part.Transparency > 0.2 and part.Transparency < 1 then
+				pcall(function()
+					part.Transparency = 1
+					table.insert(hiddenFogParts, part)
+				end)
+			end
+		end
+	end
+end
+
+-- Hàm khôi phục các khối mờ
+local function restoreFogVolumes()
+	for _, p in ipairs(hiddenFogParts) do
+		pcall(function() p.Transparency = 0 end) -- Trả về đặc hoàn toàn
+	end
+	table.clear(hiddenFogParts)
+end
 
 local function scanZombies()
 	local now = os.clock()
@@ -68,69 +100,53 @@ local function disableSky(enabled)
 	end
 end
 
--- Kiểm tra accessory
-local function isAccessory(part)
-	local parent = part.Parent
-	while parent do
-		if parent:IsA("Accoutrement") or parent.Name == "Accessory" or parent.Name:find("Handle") then
-			return true
-		end
-		parent = parent.Parent
-	end
-	return false
-end
-
--- Extreme Low Graphics - ĐÃ THÊM XÓA LIGHT
+-- Extreme Low Graphics (đã thêm xóa khối mờ)
 local function applyExtremeLowGraphics()
 	if extremeGraphicsApplied then return end
 	extremeGraphicsApplied = true
 	Lighting.GlobalShadows, Lighting.Outlines = false, false
 	Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 0, 0
 	Lighting.FogEnd, Lighting.FogStart, Lighting.Brightness = 50, 0, 1
-	
 	for _, obj in pairs(Workspace:GetDescendants()) do
 		pcall(function()
-			if obj:IsA("BasePart") and not isAccessory(obj) then
+			if obj:IsA("BasePart") then
 				obj.CastShadow, obj.Reflectance = false, 0
-				if obj.Material ~= Enum.Material.Plastic then
-					obj.Material = Enum.Material.SmoothPlastic
-				end
+				obj.Material = Enum.Material.SmoothPlastic
 			elseif obj:IsA("Texture") or obj:IsA("Decal") then
 				if not obj:IsDescendantOf(player:WaitForChild("PlayerGui")) then obj:Destroy() end
-			elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") 
-				or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") 
-				or obj:IsA("Explosion") then
+			elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Explosion") then
 				obj:Destroy()
-			-- THÊM XÓA LIGHT
 			elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
 				obj:Destroy()
 			end
 		end)
 	end
-	
 	pcall(function()
 		Workspace.Terrain.Decoration = false
 		Workspace.Terrain.WaterWaveSize, Workspace.Terrain.WaterWaveSpeed = 0, 0
 		Workspace.Terrain.WaterReflectance, Workspace.Terrain.WaterTransparency = 0, 1
 	end)
+	-- Ẩn các khối mờ
+	hideFogVolumes()
 end
 
--- Bắt vật thể mới spawn
 Workspace.DescendantAdded:Connect(function(obj)
 	if not extremeGraphicsApplied then return end
 	pcall(function()
-		if obj:IsA("BasePart") and not isAccessory(obj) then
-			obj.CastShadow, obj.Reflectance = false, 0
-			if obj.Material ~= Enum.Material.Plastic then obj.Material = Enum.Material.SmoothPlastic end
-		elseif (obj:IsA("Texture") or obj:IsA("Decal")) and not obj:IsDescendantOf(player:WaitForChild("PlayerGui")) then
-			obj:Destroy()
-		elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") 
-			or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") 
-			or obj:IsA("Explosion") then
-			obj:Destroy()
-		-- THÊM XÓA LIGHT MỚI SPAWN
-		elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
-			obj:Destroy()
+		if obj:IsA("BasePart") then obj.CastShadow, obj.Reflectance = false, 0; obj.Material = Enum.Material.SmoothPlastic
+		elseif (obj:IsA("Texture") or obj:IsA("Decal")) and not obj:IsDescendantOf(player:WaitForChild("PlayerGui")) then obj:Destroy()
+		elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Explosion") then obj:Destroy()
+		elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then obj:Destroy()
+		end
+		-- Kiểm tra nếu là khối mờ (trong suốt) và không phải nhân vật thì ẩn luôn
+		if obj:IsA("BasePart") then
+			local model = obj:FindFirstAncestorOfClass("Model")
+			if not (model and model:FindFirstChild("Humanoid")) and not Players:GetPlayerFromCharacter(obj.Parent) then
+				if obj.Transparency > 0.2 and obj.Transparency < 1 then
+					obj.Transparency = 1
+					table.insert(hiddenFogParts, obj)
+				end
+			end
 		end
 	end)
 end)
@@ -146,15 +162,11 @@ Workspace.DescendantAdded:Connect(function(obj)
 	pcall(function() if obj:IsA("Sound") then obj.Volume = 0 end end)
 end)
 
--- Performance Mode (không đụng accessory)
 local function applyLowQuality(zombie)
 	if not Settings.PerformanceMode or processedZombies[zombie] then return end
 	processedZombies[zombie] = true
 	for _, part in pairs(zombie:GetDescendants()) do
-		if part:IsA("BasePart") and not isAccessory(part) then
-			part.CastShadow = false
-			if part.Material ~= Enum.Material.Plastic then part.Material = Enum.Material.SmoothPlastic end
-		end
+		if part:IsA("BasePart") then part.CastShadow = false; part.Material = Enum.Material.SmoothPlastic end
 	end
 end
 
@@ -220,7 +232,7 @@ local function optimizeZombies()
 			if show then applyLowQuality(zombie) end
 			local targetTrans = show and 0 or 1
 			for _, part in pairs(zombie:GetDescendants()) do
-				if part:IsA("BasePart") then part.Transparency = targetTrans end
+				if part:IsA("BasePart") and part.Transparency ~= targetTrans then part.Transparency = targetTrans end
 			end
 			local h = zombie:FindFirstChildOfClass("Humanoid")
 			if h then local a = h:FindFirstChildOfClass("Animator") if a then if show then a:Resume() else a:Step(0) end end end
@@ -251,8 +263,8 @@ _G.DisableSky = disableSky
 _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
-print("✅ FixLag Core - Đã thêm xóa Light!")
--- FixLag GUI - TĂNG TỐC CHẠY LUÔN GIỮ 30, KHÔNG BỊ RESET
+print("✅ FixLag Core - Extreme Low Graphics giờ đã tự xóa khối mờ!")
+-- FixLag GUI - ĐÃ XÓA NÚT "XÓA KHỐI MỜ", GIỮ TẤT CẢ CHỨC NĂNG KHÁC
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
@@ -262,6 +274,10 @@ if settings.SpeedBoost == nil then settings.SpeedBoost = false end
 if settings.WallTransparency == nil then settings.WallTransparency = 0 end
 
 local wallParts = {}
+local Lighting = game:GetService("Lighting")
+
+local defaultFogEnd = Lighting.FogEnd
+local defaultFogStart = Lighting.FogStart
 
 local function notify(msg)
     local g = Instance.new("ScreenGui", playerGui)
@@ -288,15 +304,23 @@ local function isCharacterPart(part)
     return false
 end
 
+local function isSolidPart(part)
+    if part.Transparency > 0 then return false end
+    if part:IsA("Terrain") then return false end
+    return true
+end
+
 local function applyWallTransparency(level)
     for _, p in ipairs(wallParts) do
         pcall(function() p.Transparency = 0 end)
     end
     table.clear(wallParts)
+    Lighting.FogEnd = defaultFogEnd
+    Lighting.FogStart = defaultFogStart
     if level == 0 then return end
     local val = ({0, 0.5, 0.7, 0.9})[level+1]
     for _, part in ipairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not isCharacterPart(part) then
+        if part:IsA("BasePart") and not isCharacterPart(part) and isSolidPart(part) then
             if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
                 local mat = part.Material
                 if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
@@ -316,7 +340,7 @@ local function applyWallTransparency(level)
 end
 
 workspace.DescendantAdded:Connect(function(part)
-    if settings.WallTransparency > 0 and part:IsA("BasePart") and not isCharacterPart(part) then
+    if settings.WallTransparency > 0 and part:IsA("BasePart") and not isCharacterPart(part) and isSolidPart(part) then
         if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
             local mat = part.Material
             if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
@@ -335,7 +359,7 @@ workspace.DescendantAdded:Connect(function(part)
     end
 end)
 
--- Vòng lặp duy trì tốc độ khi bật SpeedBoost
+-- Vòng lặp giữ tốc độ
 task.spawn(function()
     while true do
         if settings.SpeedBoost then
@@ -347,7 +371,7 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.5) -- Kiểm tra mỗi 0.5 giây
+        task.wait(0.5)
     end
 end)
 
@@ -548,13 +572,11 @@ addTextBox(tabFrames[4], "Góc nhìn (FOV)", "FOV_ANGLE", 30, 180)
 addToggle(tabFrames[5], "Ẩn người chơi xa", "HidePlayers")
 addToggle(tabFrames[5], "Tăng tốc chạy (30)", "SpeedBoost", function(on)
     if on then
-        -- Khi bật, lập tức đặt tốc độ 30, vòng lặp sẽ duy trì
         local char = player.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.WalkSpeed = 30
         end
     else
-        -- Khi tắt, đưa về mặc định 16
         local char = player.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.WalkSpeed = 16
@@ -599,5 +621,5 @@ playerGui.DescendantAdded:Connect(function(o)
     end
 end)
 
-notify("✨ Tăng tốc chạy giờ sẽ không bị reset!")
-print("✅ GUI - Tăng tốc chạy duy trì vĩnh viễn khi bật")
+notify("✨ Fix Lag đã sẵn sàng! (Khối mờ sẽ tự ẩn khi bật Giảm đồ họa)")
+print("✅ GUI - Đã xóa nút Xóa khối mờ, tích hợp vào Extreme Low Graphics")
