@@ -264,7 +264,7 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core - Extreme Low Graphics giờ đã tự xóa khối mờ!")
--- FixLag GUI - ĐÃ XÓA NÚT "XÓA KHỐI MỜ", GIỮ TẤT CẢ CHỨC NĂNG KHÁC
+-- FixLag GUI - SỬA LỖI TEXT GAME BỊ TREO (CHỈ HIỆN SỐ BALO THÔNG MINH)
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
@@ -613,13 +613,19 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 
--- Hiện số balo
-for _, o in pairs(playerGui:GetDescendants()) do if o:IsA("TextLabel") then o.Visible = true end end
+-- Hiện số balo THÔNG MINH (chỉ can thiệp nếu text có vẻ là số lượng)
 playerGui.DescendantAdded:Connect(function(o)
-    if o:IsA("TextLabel") then o.Visible = true
-        o:GetPropertyChangedSignal("Visible"):Connect(function() if not o.Visible then o.Visible = true end end)
+    if o:IsA("TextLabel") then
+        local text = o.Text
+        -- Chỉ ép hiển thị nếu text chứa dấu "/" hoặc là chuỗi số thuần túy
+        if text:find("/") or tonumber(text) then
+            o.Visible = true
+            o:GetPropertyChangedSignal("Visible"):Connect(function()
+                if not o.Visible then o.Visible = true end
+            end)
+        end
     end
 end)
 
-notify("✨ Fix Lag đã sẵn sàng! (Khối mờ sẽ tự ẩn khi bật Giảm đồ họa)")
-print("✅ GUI - Đã xóa nút Xóa khối mờ, tích hợp vào Extreme Low Graphics")
+notify("✨ Fix Lag đã sẵn sàng! (Text game không còn bị treo)")
+print("✅ GUI - Đã sửa lỗi text game")
