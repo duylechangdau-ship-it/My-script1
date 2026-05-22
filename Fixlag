@@ -1,4 +1,4 @@
--- FixLag Core - TÍCH HỢP XÓA KHỐI MỜ VÀO EXTREME LOW GRAPHICS
+-- FixLag Core - ĐẦY ĐỦ CHỨC NĂNG, GIẢM ĐỒ HỌA TỐT
 local Players = game:GetService("Players")
 local Workspace = game.Workspace
 local Lighting = game.Lighting
@@ -23,47 +23,24 @@ local Settings = {
 
 local extremeGraphicsApplied = false
 local allSoundsMuted = false
-local skyDisabled = false
 local zombieCache = {}
 local lastZombieScan = 0
-local ZOMBIE_SCAN_INTERVAL = 5
 local processedZombies = {}
-local hiddenFogParts = {} -- Lưu các part mờ đã bị ẩn
 
--- Hàm ẩn các khối mờ (dùng trong Extreme Low Graphics)
-local function hideFogVolumes()
-	for _, part in ipairs(Workspace:GetDescendants()) do
-		if part:IsA("BasePart") then
-			-- Bỏ qua nhân vật (zombie, người chơi)
-			local model = part:FindFirstAncestorOfClass("Model")
-			if model and model:FindFirstChild("Humanoid") then
-				continue
-			end
-			if Players:GetPlayerFromCharacter(part.Parent) then
-				continue
-			end
-			-- Chỉ ẩn các part có độ trong suốt từ 0.2 đến 0.99
-			if part.Transparency > 0.2 and part.Transparency < 1 then
-				pcall(function()
-					part.Transparency = 1
-					table.insert(hiddenFogParts, part)
-				end)
-			end
+local function isCharacterPart(part)
+	local current = part
+	while current and current ~= Workspace do
+		if current:IsA("Model") and current:FindFirstChild("Humanoid") then
+			return true
 		end
+		current = current.Parent
 	end
-end
-
--- Hàm khôi phục các khối mờ
-local function restoreFogVolumes()
-	for _, p in ipairs(hiddenFogParts) do
-		pcall(function() p.Transparency = 0 end) -- Trả về đặc hoàn toàn
-	end
-	table.clear(hiddenFogParts)
+	return false
 end
 
 local function scanZombies()
 	local now = os.clock()
-	if now - lastZombieScan < ZOMBIE_SCAN_INTERVAL then return zombieCache end
+	if now - lastZombieScan < 5 then return zombieCache end
 	lastZombieScan = now
 	table.clear(zombieCache)
 	for _, obj in pairs(Workspace:GetDescendants()) do
@@ -78,11 +55,6 @@ local function enableFullbright()
 	Lighting.Brightness, Lighting.ClockTime, Lighting.FogEnd = 3, 14, 99999
 	Lighting.GlobalShadows, Lighting.OutdoorAmbient, Lighting.Ambient = false, Color3.fromRGB(255,255,255), Color3.fromRGB(255,255,255)
 	Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 1, 0
-	pcall(function()
-		if Lighting:FindFirstChildOfClass("BloomEffect") then Lighting:FindFirstChildOfClass("BloomEffect").Enabled = false end
-		if Lighting:FindFirstChildOfClass("BlurEffect") then Lighting:FindFirstChildOfClass("BlurEffect").Enabled = false end
-		if Lighting:FindFirstChildOfClass("ColorCorrectionEffect") then Lighting:FindFirstChildOfClass("ColorCorrectionEffect").Enabled = false end
-	end)
 end
 
 local function disableFullbright()
@@ -92,7 +64,6 @@ local function disableFullbright()
 end
 
 local function disableSky(enabled)
-	skyDisabled = enabled
 	if enabled then
 		for _, obj in pairs(Lighting:GetChildren()) do
 			if obj:IsA("Sky") or obj:IsA("Atmosphere") or obj:IsA("SunRaysEffect") or obj:IsA("Clouds") then obj:Destroy() end
@@ -100,7 +71,6 @@ local function disableSky(enabled)
 	end
 end
 
--- Extreme Low Graphics (đã thêm xóa khối mờ)
 local function applyExtremeLowGraphics()
 	if extremeGraphicsApplied then return end
 	extremeGraphicsApplied = true
@@ -109,7 +79,7 @@ local function applyExtremeLowGraphics()
 	Lighting.FogEnd, Lighting.FogStart, Lighting.Brightness = 50, 0, 1
 	for _, obj in pairs(Workspace:GetDescendants()) do
 		pcall(function()
-			if obj:IsA("BasePart") then
+			if obj:IsA("BasePart") and not isCharacterPart(obj) then
 				obj.CastShadow, obj.Reflectance = false, 0
 				obj.Material = Enum.Material.SmoothPlastic
 			elseif obj:IsA("Texture") or obj:IsA("Decal") then
@@ -119,6 +89,13 @@ local function applyExtremeLowGraphics()
 			elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
 				obj:Destroy()
 			end
+			-- Ẩn khối mờ
+			if obj:IsA("BasePart") and obj.Transparency > 0.2 and obj.Transparency < 1 and not isCharacterPart(obj) then
+				obj.Transparency = 1
+				for _, child in ipairs(obj:GetChildren()) do
+					if child:IsA("SurfaceGui") or child:IsA("BillboardGui") then child.Enabled = false end
+				end
+			end
 		end)
 	end
 	pcall(function()
@@ -126,29 +103,23 @@ local function applyExtremeLowGraphics()
 		Workspace.Terrain.WaterWaveSize, Workspace.Terrain.WaterWaveSpeed = 0, 0
 		Workspace.Terrain.WaterReflectance, Workspace.Terrain.WaterTransparency = 0, 1
 	end)
-	-- Ẩn các khối mờ
-	hideFogVolumes()
 end
 
 Workspace.DescendantAdded:Connect(function(obj)
-	if not extremeGraphicsApplied then return end
-	pcall(function()
-		if obj:IsA("BasePart") then obj.CastShadow, obj.Reflectance = false, 0; obj.Material = Enum.Material.SmoothPlastic
-		elseif (obj:IsA("Texture") or obj:IsA("Decal")) and not obj:IsDescendantOf(player:WaitForChild("PlayerGui")) then obj:Destroy()
-		elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Explosion") then obj:Destroy()
-		elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then obj:Destroy()
-		end
-		-- Kiểm tra nếu là khối mờ (trong suốt) và không phải nhân vật thì ẩn luôn
-		if obj:IsA("BasePart") then
-			local model = obj:FindFirstAncestorOfClass("Model")
-			if not (model and model:FindFirstChild("Humanoid")) and not Players:GetPlayerFromCharacter(obj.Parent) then
-				if obj.Transparency > 0.2 and obj.Transparency < 1 then
-					obj.Transparency = 1
-					table.insert(hiddenFogParts, obj)
-				end
+	if extremeGraphicsApplied then
+		pcall(function()
+			if obj:IsA("BasePart") and not isCharacterPart(obj) then
+				obj.CastShadow, obj.Reflectance = false, 0
+				obj.Material = Enum.Material.SmoothPlastic
+			elseif (obj:IsA("Texture") or obj:IsA("Decal")) and not obj:IsDescendantOf(player:WaitForChild("PlayerGui")) then obj:Destroy()
+			elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Explosion") then obj:Destroy()
+			elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then obj:Destroy()
 			end
-		end
-	end)
+			if obj:IsA("BasePart") and obj.Transparency > 0.2 and obj.Transparency < 1 and not isCharacterPart(obj) then
+				obj.Transparency = 1
+			end
+		end)
+	end
 end)
 
 local function toggleMuteAllSounds(enabled)
@@ -190,18 +161,23 @@ local function hideFarPlayers()
 end
 
 local function optimizeZombies()
+	local zombies = scanZombies()
 	if not Settings.MasterEnabled or not Settings.FOVCulling then
-		for _, zombie in ipairs(zombieCache) do
+		for _, zombie in ipairs(zombies) do
 			pcall(function()
 				for _, part in pairs(zombie:GetDescendants()) do
-					if part:IsA("BasePart") and part.Transparency == 1 then part.Transparency = 0 end
+					if part:IsA("BasePart") then part.Transparency = 0 end
 				end
-				local h = zombie:FindFirstChildOfClass("Humanoid")
-				if h then local a = h:FindFirstChildOfClass("Animator") if a then a:Resume() end end
+				local humanoid = zombie:FindFirstChildOfClass("Humanoid")
+				if humanoid then
+					local animator = humanoid:FindFirstChildOfClass("Animator")
+					if animator then animator:Resume() end
+				end
 			end)
 		end
 		return
 	end
+
 	local char = player.Character
 	if not char then return end
 	local root = char:FindFirstChild("HumanoidRootPart")
@@ -210,7 +186,20 @@ local function optimizeZombies()
 	if not Camera then Camera = Workspace.CurrentCamera end
 	if not Camera then return end
 	local camPos, camLook = Camera.CFrame.Position, Camera.CFrame.LookVector
-	local zombies = scanZombies()
+
+	for _, zombie in ipairs(zombies) do
+		pcall(function()
+			for _, part in pairs(zombie:GetDescendants()) do
+				if part:IsA("BasePart") then part.Transparency = 1 end
+			end
+			local humanoid = zombie:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				local animator = humanoid:FindFirstChildOfClass("Animator")
+				if animator then animator:Step(0) end
+			end
+		end)
+	end
+
 	local zombieData = {}
 	for _, zombie in ipairs(zombies) do
 		local hrp = zombie:FindFirstChild("HumanoidRootPart")
@@ -219,23 +208,28 @@ local function optimizeZombies()
 			if dist <= Settings.MAX_DISTANCE then
 				local dir = (hrp.Position - camPos).Unit
 				local angle = math.deg(math.acos(camLook:Dot(dir)))
-				zombieData[#zombieData+1] = {zombie = zombie, distance = dist, angle = angle, inFOV = angle <= (Settings.FOV_ANGLE/2)}
+				zombieData[#zombieData+1] = {zombie = zombie, distance = dist, angle = angle, inFOV = angle <= (Settings.FOV_ANGLE / 2)}
 			end
 		end
 	end
-	table.sort(zombieData, function(a,b) if a.inFOV ~= b.inFOV then return a.inFOV else return a.distance < b.distance end end)
+	table.sort(zombieData, function(a, b) if a.inFOV ~= b.inFOV then return a.inFOV else return a.distance < b.distance end end)
+
 	local visibleCount = 0
 	for _, data in ipairs(zombieData) do
 		local show = (visibleCount < Settings.MAX_VISIBLE) and data.inFOV
 		local zombie = data.zombie
 		pcall(function()
-			if show then applyLowQuality(zombie) end
-			local targetTrans = show and 0 or 1
-			for _, part in pairs(zombie:GetDescendants()) do
-				if part:IsA("BasePart") and part.Transparency ~= targetTrans then part.Transparency = targetTrans end
+			if show then
+				applyLowQuality(zombie)
+				for _, part in pairs(zombie:GetDescendants()) do
+					if part:IsA("BasePart") then part.Transparency = 0 end
+				end
+				local humanoid = zombie:FindFirstChildOfClass("Humanoid")
+				if humanoid then
+					local animator = humanoid:FindFirstChildOfClass("Animator")
+					if animator then animator:Resume() end
+				end
 			end
-			local h = zombie:FindFirstChildOfClass("Humanoid")
-			if h then local a = h:FindFirstChildOfClass("Animator") if a then if show then a:Resume() else a:Step(0) end end end
 		end)
 		if show then visibleCount += 1 end
 	end
@@ -253,7 +247,7 @@ local function cleanDebris()
 	end
 end
 
-task.spawn(function() while true do if Settings.MasterEnabled then pcall(optimizeZombies) pcall(hideFarPlayers) end task.wait(0.5) end end)
+task.spawn(function() while true do if Settings.MasterEnabled then pcall(optimizeZombies); pcall(hideFarPlayers) end task.wait(0.5) end end)
 task.spawn(function() while true do pcall(cleanDebris) task.wait(20) end end)
 
 _G.Settings = Settings
@@ -263,8 +257,8 @@ _G.DisableSky = disableSky
 _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
-print("✅ FixLag Core - Extreme Low Graphics giờ đã tự xóa khối mờ!")
--- FixLag GUI - SỬA LỖI TEXT GAME BỊ TREO (CHỈ HIỆN SỐ BALO THÔNG MINH)
+print("✅ FixLag Core đã sẵn sàng!")
+-- FixLag GUI - MENU ĐẦY ĐỦ, ĐẸP, DỄ DÙNG
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
@@ -274,358 +268,332 @@ if settings.SpeedBoost == nil then settings.SpeedBoost = false end
 if settings.WallTransparency == nil then settings.WallTransparency = 0 end
 
 local wallParts = {}
-local Lighting = game:GetService("Lighting")
-
-local defaultFogEnd = Lighting.FogEnd
-local defaultFogStart = Lighting.FogStart
+local walkSpeedConnection = nil
 
 local function notify(msg)
-    local g = Instance.new("ScreenGui", playerGui)
-    local l = Instance.new("TextLabel", g)
-    l.Size = UDim2.new(0,280,0,30) l.Position = UDim2.new(0.5,-140,0.8,0)
-    l.BackgroundColor3 = Color3.fromRGB(0,0,0) l.BackgroundTransparency = 0.5
-    l.TextColor3 = Color3.fromRGB(255,255,255) l.Text = msg
-    l.Font = Enum.Font.SourceSansBold l.TextSize = 14 l.BorderSizePixel = 0
-    Instance.new("UICorner", l).CornerRadius = UDim.new(0,6)
-    task.delay(2, function() l:Destroy() g:Destroy() end)
+	local g = Instance.new("ScreenGui", playerGui)
+	local l = Instance.new("TextLabel", g)
+	l.Size = UDim2.new(0, 280, 0, 30) l.Position = UDim2.new(0.5, -140, 0.8, 0)
+	l.BackgroundColor3 = Color3.fromRGB(0, 0, 0) l.BackgroundTransparency = 0.5
+	l.TextColor3 = Color3.fromRGB(255, 255, 255) l.Text = msg
+	l.Font = Enum.Font.SourceSansBold l.TextSize = 14 l.BorderSizePixel = 0
+	Instance.new("UICorner", l).CornerRadius = UDim.new(0, 6)
+	task.delay(2, function() l:Destroy() g:Destroy() end)
 end
 
 local function isCharacterPart(part)
-    local current = part
-    while current and current ~= workspace do
-        local parent = current.Parent
-        if parent and parent:IsA("Model") then
-            if parent:FindFirstChild("HumanoidRootPart") then
-                return true
-            end
-        end
-        current = parent
-    end
-    return false
-end
-
-local function isSolidPart(part)
-    if part.Transparency > 0 then return false end
-    if part:IsA("Terrain") then return false end
-    return true
+	local current = part
+	while current and current ~= workspace do
+		local parent = current.Parent
+		if parent and parent:IsA("Model") and parent:FindFirstChild("HumanoidRootPart") then return true end
+		current = parent
+	end
+	return false
 end
 
 local function applyWallTransparency(level)
-    for _, p in ipairs(wallParts) do
-        pcall(function() p.Transparency = 0 end)
-    end
-    table.clear(wallParts)
-    Lighting.FogEnd = defaultFogEnd
-    Lighting.FogStart = defaultFogStart
-    if level == 0 then return end
-    local val = ({0, 0.5, 0.7, 0.9})[level+1]
-    for _, part in ipairs(workspace:GetDescendants()) do
-        if part:IsA("BasePart") and not isCharacterPart(part) and isSolidPart(part) then
-            if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
-                local mat = part.Material
-                if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
-                   mat == Enum.Material.Wood or mat == Enum.Material.WoodPlanks or
-                   mat == Enum.Material.Brick or mat == Enum.Material.Concrete or
-                   mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal or
-                   mat == Enum.Material.Marble or mat == Enum.Material.Slate or
-                   mat == Enum.Material.Sandstone or mat == Enum.Material.Cobblestone then
-                    pcall(function()
-                        part.Transparency = val
-                        table.insert(wallParts, part)
-                    end)
-                end
-            end
-        end
-    end
+	for _, p in ipairs(wallParts) do pcall(function() p.Transparency = 0 end) end
+	table.clear(wallParts)
+	if level == 0 then return end
+	local val = ({0, 0.3, 0.5, 0.7})[level + 1]
+	for _, part in ipairs(workspace:GetDescendants()) do
+		if part:IsA("BasePart") and part.Transparency == 0 and not isCharacterPart(part) then
+			if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
+				local mat = part.Material
+				if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
+				   mat == Enum.Material.Wood or mat == Enum.Material.WoodPlanks or
+				   mat == Enum.Material.Brick or mat == Enum.Material.Concrete or
+				   mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal then
+					pcall(function() part.Transparency = val; table.insert(wallParts, part) end)
+				end
+			end
+		end
+	end
 end
 
 workspace.DescendantAdded:Connect(function(part)
-    if settings.WallTransparency > 0 and part:IsA("BasePart") and not isCharacterPart(part) and isSolidPart(part) then
-        if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
-            local mat = part.Material
-            if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
-               mat == Enum.Material.Wood or mat == Enum.Material.WoodPlanks or
-               mat == Enum.Material.Brick or mat == Enum.Material.Concrete or
-               mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal or
-               mat == Enum.Material.Marble or mat == Enum.Material.Slate or
-               mat == Enum.Material.Sandstone or mat == Enum.Material.Cobblestone then
-                local val = ({0, 0.5, 0.7, 0.9})[settings.WallTransparency+1]
-                pcall(function()
-                    part.Transparency = val
-                    table.insert(wallParts, part)
-                end)
-            end
-        end
-    end
+	if settings.WallTransparency > 0 and part:IsA("BasePart") and part.Transparency == 0 and not isCharacterPart(part) then
+		if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
+			local mat = part.Material
+			if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
+			   mat == Enum.Material.Wood or mat == Enum.Material.WoodPlanks or
+			   mat == Enum.Material.Brick or mat == Enum.Material.Concrete or
+			   mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal then
+				local val = ({0, 0.3, 0.5, 0.7})[settings.WallTransparency + 1]
+				pcall(function() part.Transparency = val; table.insert(wallParts, part) end)
+			end
+		end
+	end
 end)
 
--- Vòng lặp giữ tốc độ
-task.spawn(function()
-    while true do
-        if settings.SpeedBoost then
-            local char = player.Character
-            if char then
-                local humanoid = char:FindFirstChild("Humanoid")
-                if humanoid and humanoid.WalkSpeed ~= 30 then
-                    humanoid.WalkSpeed = 30
-                end
-            end
-        end
-        task.wait(0.5)
-    end
+local function setSpeedBoost(enabled)
+	settings.SpeedBoost = enabled
+	local char = player.Character
+	if not char then return end
+	local humanoid = char:FindFirstChild("Humanoid")
+	if not humanoid then return end
+
+	if enabled then
+		humanoid.WalkSpeed = 30
+		if not walkSpeedConnection then
+			walkSpeedConnection = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+				if settings.SpeedBoost and humanoid.WalkSpeed ~= 30 then
+					humanoid.WalkSpeed = 30
+				end
+			end)
+		end
+	else
+		if walkSpeedConnection then
+			walkSpeedConnection:Disconnect()
+			walkSpeedConnection = nil
+		end
+		humanoid.WalkSpeed = 16
+	end
+end
+
+player.CharacterAdded:Connect(function(newChar)
+	if settings.SpeedBoost then
+		local humanoid = newChar:WaitForChild("Humanoid")
+		humanoid.WalkSpeed = 30
+		if walkSpeedConnection then walkSpeedConnection:Disconnect() end
+		walkSpeedConnection = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+			if settings.SpeedBoost and humanoid.WalkSpeed ~= 30 then
+				humanoid.WalkSpeed = 30
+			end
+		end)
+	end
 end)
 
 local sg = Instance.new("ScreenGui", playerGui)
 sg.Name = "FixLagMenu" sg.ResetOnSpawn = false
 
--- Icon kéo thả
 local iconBtn = Instance.new("TextButton", sg)
-iconBtn.Size = UDim2.new(0,70,0,70) iconBtn.Position = UDim2.new(1,-80,0.3,0)
-iconBtn.BackgroundColor3 = Color3.fromRGB(255,80,80) iconBtn.Text = "⚡"
-iconBtn.TextColor3 = Color3.fromRGB(255,255,255) iconBtn.Font = Enum.Font.SourceSansBold
+iconBtn.Size = UDim2.new(0, 70, 0, 70) iconBtn.Position = UDim2.new(1, -80, 0.3, 0)
+iconBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80) iconBtn.Text = "⚡"
+iconBtn.TextColor3 = Color3.fromRGB(255, 255, 255) iconBtn.Font = Enum.Font.SourceSansBold
 iconBtn.TextSize = 30 iconBtn.BorderSizePixel = 0
 iconBtn.Active = true iconBtn.Draggable = true iconBtn.ZIndex = 1000
-Instance.new("UICorner", iconBtn).CornerRadius = UDim.new(0,35)
+Instance.new("UICorner", iconBtn).CornerRadius = UDim.new(0, 35)
 Instance.new("UIStroke", iconBtn).Thickness = 3
 
--- FPS
 local fpsF = Instance.new("Frame", sg)
-fpsF.Size = UDim2.new(0,150,0,40) fpsF.Position = UDim2.new(1,-160,1,-50)
-fpsF.BackgroundColor3 = Color3.fromRGB(0,0,0) fpsF.BackgroundTransparency = 0.5 fpsF.BorderSizePixel = 0
-Instance.new("UICorner", fpsF).CornerRadius = UDim.new(0,8)
+fpsF.Size = UDim2.new(0, 150, 0, 40) fpsF.Position = UDim2.new(1, -160, 1, -50)
+fpsF.BackgroundColor3 = Color3.fromRGB(0, 0, 0) fpsF.BackgroundTransparency = 0.5 fpsF.BorderSizePixel = 0
+Instance.new("UICorner", fpsF).CornerRadius = UDim.new(0, 8)
 local fpsL = Instance.new("TextLabel", fpsF)
-fpsL.Size = UDim2.new(1,0,1,0) fpsL.BackgroundTransparency = 1
-fpsL.TextColor3 = Color3.fromRGB(0,255,150) fpsL.Font = Enum.Font.SourceSansBold fpsL.TextSize = 22 fpsL.Text = "FPS: --"
+fpsL.Size = UDim2.new(1, 0, 1, 0) fpsL.BackgroundTransparency = 1
+fpsL.TextColor3 = Color3.fromRGB(0, 255, 150) fpsL.Font = Enum.Font.SourceSansBold fpsL.TextSize = 22 fpsL.Text = "FPS: --"
 
--- Menu chính
 local menu = Instance.new("Frame", sg)
-menu.Size = UDim2.new(0,340,0,480) menu.Position = UDim2.new(0.5,-170,0.5,-240)
-menu.BackgroundColor3 = Color3.fromRGB(50,55,65) menu.BorderSizePixel = 0
+menu.Size = UDim2.new(0, 340, 0, 480) menu.Position = UDim2.new(0.5, -170, 0.5, -240)
+menu.BackgroundColor3 = Color3.fromRGB(50, 55, 65) menu.BorderSizePixel = 0
 menu.Active = true menu.Draggable = true menu.Visible = false
-Instance.new("UICorner", menu).CornerRadius = UDim.new(0,14)
+Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 14)
 
--- Tiêu đề
 local titleBar = Instance.new("Frame", menu)
-titleBar.Size = UDim2.new(1,0,0,40) titleBar.BackgroundColor3 = Color3.fromRGB(80,90,160) titleBar.BorderSizePixel = 0
-Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0,14)
+titleBar.Size = UDim2.new(1, 0, 0, 40) titleBar.BackgroundColor3 = Color3.fromRGB(80, 90, 160) titleBar.BorderSizePixel = 0
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 14)
 local title = Instance.new("TextLabel", titleBar)
-title.Size = UDim2.new(1,-40,1,0) title.Position = UDim2.new(0,10,0,0)
-title.BackgroundTransparency = 1 title.Text = "FIX LAG PRO" title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Font = Enum.Font.SourceSansBold title.TextSize = 18 title.TextXAlignment = Enum.TextXAlignment.Left
+title.Size = UDim2.new(1, -40, 1, 0) title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1 title.Text = "FIX LAG PRO" title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold title.TextSize = 18
 local closeBtn = Instance.new("TextButton", titleBar)
-closeBtn.Size = UDim2.new(0,34,0,34) closeBtn.Position = UDim2.new(1,-37,0,3)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255,180,50) closeBtn.Text = "—"
-closeBtn.TextColor3 = Color3.fromRGB(255,255,255) closeBtn.Font = Enum.Font.SourceSansBold
-closeBtn.TextSize = 20 closeBtn.BorderSizePixel = 0
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,17)
+closeBtn.Size = UDim2.new(0, 34, 0, 34) closeBtn.Position = UDim2.new(1, -37, 0, 3)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 50) closeBtn.Text = "—"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255) closeBtn.Font = Enum.Font.SourceSansBold closeBtn.TextSize = 20 closeBtn.BorderSizePixel = 0
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 17)
 
--- Tab row
 local tabRow = Instance.new("Frame", menu)
-tabRow.Size = UDim2.new(1,-20,0,32) tabRow.Position = UDim2.new(0,10,0,46) tabRow.BackgroundTransparency = 1
+tabRow.Size = UDim2.new(1, -20, 0, 32) tabRow.Position = UDim2.new(0, 10, 0, 46) tabRow.BackgroundTransparency = 1
 
 local tabNames = {"🎨 Đồ họa", "🧟 Zombie", "🔊 Âm thanh", "⚙️ Cài đặt", "🚀 Nâng cao"}
 local tabColors = {
-    Color3.fromRGB(255,100,100), Color3.fromRGB(100,200,100),
-    Color3.fromRGB(255,200,50), Color3.fromRGB(100,150,255),
-    Color3.fromRGB(255,100,255)
+	Color3.fromRGB(255, 100, 100), Color3.fromRGB(100, 200, 100),
+	Color3.fromRGB(255, 200, 50), Color3.fromRGB(100, 150, 255),
+	Color3.fromRGB(255, 100, 255)
 }
 local tabs = {}
 local tabFrames = {}
 
 for i = 1, 5 do
-    local btn = Instance.new("TextButton", tabRow)
-    btn.Size = UDim2.new(1/5,-4,0,30) btn.Position = UDim2.new((i-1)/5,2,0,0)
-    btn.BackgroundColor3 = tabColors[i] btn.Text = tabNames[i]
-    btn.TextColor3 = Color3.fromRGB(255,255,255) btn.Font = Enum.Font.SourceSansBold btn.TextSize = 12
-    btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-    tabs[i] = btn
+	local btn = Instance.new("TextButton", tabRow)
+	btn.Size = UDim2.new(1/5, -4, 0, 30) btn.Position = UDim2.new((i-1)/5, 2, 0, 0)
+	btn.BackgroundColor3 = tabColors[i] btn.Text = tabNames[i]
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255) btn.Font = Enum.Font.SourceSansBold btn.TextSize = 12
+	btn.BorderSizePixel = 0
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+	tabs[i] = btn
 
-    local sf = Instance.new("ScrollingFrame", menu)
-    sf.Size = UDim2.new(1,-20,0,360) sf.Position = UDim2.new(0,10,0,82)
-    sf.BackgroundColor3 = Color3.fromRGB(65,70,80) sf.BorderSizePixel = 0
-    sf.ScrollBarThickness = 4 sf.Visible = (i == 1)
-    sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    Instance.new("UICorner", sf).CornerRadius = UDim.new(0,8)
-    local layout = Instance.new("UIListLayout", sf)
-    layout.Padding = UDim.new(0, 4) layout.FillDirection = Enum.FillDirection.Vertical
-    layout.SortOrder = Enum.SortOrder.LayoutOrder layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    tabFrames[i] = sf
+	local sf = Instance.new("ScrollingFrame", menu)
+	sf.Size = UDim2.new(1, -20, 0, 360) sf.Position = UDim2.new(0, 10, 0, 82)
+	sf.BackgroundColor3 = Color3.fromRGB(65, 70, 80) sf.BorderSizePixel = 0
+	sf.ScrollBarThickness = 4 sf.Visible = (i == 1)
+	sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	Instance.new("UICorner", sf).CornerRadius = UDim.new(0, 8)
+	local layout = Instance.new("UIListLayout", sf)
+	layout.Padding = UDim.new(0, 4) layout.FillDirection = Enum.FillDirection.Vertical
+	layout.SortOrder = Enum.SortOrder.LayoutOrder layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	tabFrames[i] = sf
 end
 
 local curTab = 1
 local function switchTab(idx)
-    for i = 1, 5 do
-        tabs[i].BackgroundTransparency = (i == idx) and 0 or 0.4
-        tabs[i].TextColor3 = (i == idx) and Color3.fromRGB(255,255,255) or Color3.fromRGB(200,200,200)
-        tabFrames[i].Visible = (i == idx)
-    end
-    curTab = idx
+	for i = 1, 5 do
+		tabs[i].BackgroundTransparency = (i == idx) and 0 or 0.4
+		tabs[i].TextColor3 = (i == idx) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+		tabFrames[i].Visible = (i == idx)
+	end
+	curTab = idx
 end
 for i = 1, 5 do tabs[i].MouseButton1Click:Connect(function() switchTab(i) end) end
 
--- Toggle
 local function addToggle(parent, text, setting, callback)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1,-12,0,42) frame.BackgroundColor3 = Color3.fromRGB(90,95,105) frame.BorderSizePixel = 0
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8) frame.LayoutOrder = #parent:GetChildren()
-    local lbl = Instance.new("TextLabel", frame)
-    lbl.Size = UDim2.new(0.52,-8,1,0) lbl.Position = UDim2.new(0,6,0,0)
-    lbl.BackgroundTransparency = 1 lbl.Text = text lbl.TextColor3 = Color3.fromRGB(255,255,255)
-    lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 13 lbl.TextXAlignment = Enum.TextXAlignment.Left
-    local on = settings[setting]
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0.48,-8,0,34) btn.Position = UDim2.new(0.52,4,0,4)
-    btn.BackgroundColor3 = on and Color3.fromRGB(0,190,90) or Color3.fromRGB(190,45,45)
-    btn.Text = on and "BẬT" or "TẮT" btn.TextColor3 = Color3.fromRGB(255,255,255)
-    btn.Font = Enum.Font.SourceSansBold btn.TextSize = 13 btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-    btn.MouseButton1Click:Connect(function()
-        settings[setting] = not settings[setting]
-        local newOn = settings[setting]
-        btn.BackgroundColor3 = newOn and Color3.fromRGB(0,190,90) or Color3.fromRGB(190,45,45)
-        btn.Text = newOn and "BẬT" or "TẮT"
-        if setting == "MasterEnabled" then
-            title.Text = newOn and "FIX LAG (BẬT)" or "FIX LAG (TẮT)"
-            iconBtn.BackgroundColor3 = newOn and Color3.fromRGB(0,200,80) or Color3.fromRGB(255,80,80)
-        end
-        if callback then callback(newOn) end
-        notify(text .. ": " .. (newOn and "BẬT" or "TẮT"))
-    end)
+	local frame = Instance.new("Frame", parent)
+	frame.Size = UDim2.new(1, -12, 0, 42) frame.BackgroundColor3 = Color3.fromRGB(90, 95, 105) frame.BorderSizePixel = 0
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8) frame.LayoutOrder = #parent:GetChildren()
+	local lbl = Instance.new("TextLabel", frame)
+	lbl.Size = UDim2.new(0.52, -8, 1, 0) lbl.Position = UDim2.new(0, 6, 0, 0)
+	lbl.BackgroundTransparency = 1 lbl.Text = text lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+	lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 13 lbl.TextXAlignment = Enum.TextXAlignment.Left
+	local on = settings[setting]
+	local btn = Instance.new("TextButton", frame)
+	btn.Size = UDim2.new(0.48, -8, 0, 34) btn.Position = UDim2.new(0.52, 4, 0, 4)
+	btn.BackgroundColor3 = on and Color3.fromRGB(0, 190, 90) or Color3.fromRGB(190, 45, 45)
+	btn.Text = on and "BẬT" or "TẮT" btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.SourceSansBold btn.TextSize = 13 btn.BorderSizePixel = 0
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+	btn.MouseButton1Click:Connect(function()
+		settings[setting] = not settings[setting]
+		local newOn = settings[setting]
+		btn.BackgroundColor3 = newOn and Color3.fromRGB(0, 190, 90) or Color3.fromRGB(190, 45, 45)
+		btn.Text = newOn and "BẬT" or "TẮT"
+		if setting == "MasterEnabled" then
+			title.Text = newOn and "FIX LAG (BẬT)" or "FIX LAG (TẮT)"
+			iconBtn.BackgroundColor3 = newOn and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(255, 80, 80)
+		end
+		if callback then callback(newOn) end
+		notify(text .. ": " .. (newOn and "BẬT" or "TẮT"))
+	end)
 end
 
--- TextBox
 local function addTextBox(parent, text, setting, min, max)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1,-12,0,46) frame.BackgroundColor3 = Color3.fromRGB(90,95,105) frame.BorderSizePixel = 0
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8) frame.LayoutOrder = #parent:GetChildren()
-    local lbl = Instance.new("TextLabel", frame)
-    lbl.Size = UDim2.new(0.48,-8,1,0) lbl.Position = UDim2.new(0,6,0,0)
-    lbl.BackgroundTransparency = 1 lbl.Text = text lbl.TextColor3 = Color3.fromRGB(255,255,255)
-    lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 13 lbl.TextXAlignment = Enum.TextXAlignment.Left
-    local box = Instance.new("TextBox", frame)
-    box.Size = UDim2.new(0.52,-8,0,36) box.Position = UDim2.new(0.48,4,0,5)
-    box.BackgroundColor3 = Color3.fromRGB(60,65,75) box.TextColor3 = Color3.fromRGB(255,255,150)
-    box.Font = Enum.Font.SourceSansBold box.TextSize = 15 box.Text = tostring(settings[setting])
-    box.BorderSizePixel = 0
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0,6)
-    box.FocusLost:Connect(function()
-        local n = tonumber(box.Text)
-        if n and n >= min and n <= max then settings[setting] = n; notify(text .. " = " .. n)
-        else box.Text = tostring(settings[setting]) end
-    end)
+	local frame = Instance.new("Frame", parent)
+	frame.Size = UDim2.new(1, -12, 0, 46) frame.BackgroundColor3 = Color3.fromRGB(90, 95, 105) frame.BorderSizePixel = 0
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8) frame.LayoutOrder = #parent:GetChildren()
+	local lbl = Instance.new("TextLabel", frame)
+	lbl.Size = UDim2.new(0.48, -8, 1, 0) lbl.Position = UDim2.new(0, 6, 0, 0)
+	lbl.BackgroundTransparency = 1 lbl.Text = text lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+	lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 13 lbl.TextXAlignment = Enum.TextXAlignment.Left
+	local box = Instance.new("TextBox", frame)
+	box.Size = UDim2.new(0.52, -8, 0, 36) box.Position = UDim2.new(0.48, 4, 0, 5)
+	box.BackgroundColor3 = Color3.fromRGB(60, 65, 75) box.TextColor3 = Color3.fromRGB(255, 255, 150)
+	box.Font = Enum.Font.SourceSansBold box.TextSize = 15 box.Text = tostring(settings[setting])
+	box.BorderSizePixel = 0
+	Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
+	box.FocusLost:Connect(function()
+		local n = tonumber(box.Text)
+		if n and n >= min and n <= max then
+			settings[setting] = n
+			notify("✅ " .. text .. " = " .. n)
+		else
+			box.Text = tostring(settings[setting])
+			notify("⚠️ Giá trị không hợp lệ", 2.5)
+		end
+	end)
 end
 
--- Nút làm mờ tường
 local function addWallButtons(parent)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1,-12,0,90) frame.BackgroundColor3 = Color3.fromRGB(90,95,105) frame.BorderSizePixel = 0
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8) frame.LayoutOrder = #parent:GetChildren()
-    local lbl = Instance.new("TextLabel", frame)
-    lbl.Size = UDim2.new(1,-10,0,20) lbl.Position = UDim2.new(0,5,0,5)
-    lbl.BackgroundTransparency = 1 lbl.Text = "Làm mờ tường:"
-    lbl.TextColor3 = Color3.fromRGB(255,255,255) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 13 lbl.TextXAlignment = Enum.TextXAlignment.Left
-    local levels = {"TẮT", "NHẸ", "VỪA", "MẠNH"}
-    local colors = {Color3.fromRGB(150,150,150), Color3.fromRGB(255,200,50), Color3.fromRGB(255,150,0), Color3.fromRGB(255,50,50)}
-    for i = 0, 3 do
-        local btn = Instance.new("TextButton", frame)
-        btn.Size = UDim2.new(0.22,-4,0,28) btn.Position = UDim2.new(0.03 + i*0.24, 2, 0, 40)
-        btn.BackgroundColor3 = settings.WallTransparency == i and Color3.fromRGB(0,200,100) or colors[i+1]
-        btn.Text = levels[i+1] btn.TextColor3 = Color3.fromRGB(255,255,255)
-        btn.Font = Enum.Font.SourceSansBold btn.TextSize = 12 btn.BorderSizePixel = 0
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
-        btn.MouseButton1Click:Connect(function()
-            settings.WallTransparency = i
-            applyWallTransparency(i)
-            for j = 0, 3 do
-                local b = frame:FindFirstChild(levels[j+1].."Btn")
-                if b then b.BackgroundColor3 = (i == j) and Color3.fromRGB(0,200,100) or colors[j+1] end
-            end
-        end)
-        btn.Name = levels[i+1].."Btn"
-    end
+	local frame = Instance.new("Frame", parent)
+	frame.Size = UDim2.new(1, -12, 0, 90) frame.BackgroundColor3 = Color3.fromRGB(90, 95, 105) frame.BorderSizePixel = 0
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8) frame.LayoutOrder = #parent:GetChildren()
+	local lbl = Instance.new("TextLabel", frame)
+	lbl.Size = UDim2.new(1, -10, 0, 20) lbl.Position = UDim2.new(0, 5, 0, 5)
+	lbl.BackgroundTransparency = 1 lbl.Text = "Làm mờ tường:"
+	lbl.TextColor3 = Color3.fromRGB(255, 255, 255) lbl.Font = Enum.Font.SourceSansBold lbl.TextSize = 13 lbl.TextXAlignment = Enum.TextXAlignment.Left
+	local levels = {"TẮT", "NHẸ", "VỪA", "MẠNH"}
+	local colors = {Color3.fromRGB(150, 150, 150), Color3.fromRGB(255, 200, 50), Color3.fromRGB(255, 150, 0), Color3.fromRGB(255, 50, 50)}
+	for i = 0, 3 do
+		local btn = Instance.new("TextButton", frame)
+		btn.Size = UDim2.new(0.22, -4, 0, 28) btn.Position = UDim2.new(0.03 + i*0.24, 2, 0, 40)
+		btn.BackgroundColor3 = settings.WallTransparency == i and Color3.fromRGB(0, 200, 100) or colors[i + 1]
+		btn.Text = levels[i + 1] btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+		btn.Font = Enum.Font.SourceSansBold btn.TextSize = 12 btn.BorderSizePixel = 0
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+		btn.MouseButton1Click:Connect(function()
+			settings.WallTransparency = i
+			applyWallTransparency(i)
+			for j = 0, 3 do
+				local b = frame:FindFirstChild(levels[j + 1].."Btn")
+				if b then b.BackgroundColor3 = (i == j) and Color3.fromRGB(0, 200, 100) or colors[j + 1] end
+			end
+		end)
+		btn.Name = levels[i + 1].."Btn"
+	end
 end
 
--- Nội dung các tab
+-- Tab 1
 addToggle(tabFrames[1], "Công tắc chính", "MasterEnabled")
-addToggle(tabFrames[1], "Fullbright (Sáng)", "Fullbright", function(on) if on then _G.EnableFullbright() else _G.DisableFullbright() end end)
+addToggle(tabFrames[1], "Fullbright", "Fullbright", function(on) if on then _G.EnableFullbright() else _G.DisableFullbright() end end)
 addToggle(tabFrames[1], "Tắt bầu trời", "DisableSky", function(on) _G.DisableSky(on) end)
 addToggle(tabFrames[1], "Giảm đồ họa siêu mạnh", "ExtremeLowGraphics", function(on) if on then _G.ApplyExtremeLowGraphics() end end)
 addToggle(tabFrames[1], "Xóa cỏ", "RemoveGrass", function(on) pcall(function() workspace.Terrain.Decoration = not on end) end)
 addToggle(tabFrames[1], "Giảm chất lượng nước", "LowWater", function(on)
-    pcall(function()
-        if on then workspace.Terrain.WaterWaveSize = 0; workspace.Terrain.WaterWaveSpeed = 0
-        else workspace.Terrain.WaterWaveSize = 0.5; workspace.Terrain.WaterWaveSpeed = 2 end
-    end)
+	pcall(function()
+		if on then workspace.Terrain.WaterWaveSize = 0; workspace.Terrain.WaterWaveSpeed = 0
+		else workspace.Terrain.WaterWaveSize = 0.5; workspace.Terrain.WaterWaveSpeed = 2 end
+	end)
 end)
 
+-- Tab 2
 addToggle(tabFrames[2], "FOV Culling", "FOVCulling")
 addToggle(tabFrames[2], "Giảm chất lượng zombie", "PerformanceMode")
 addToggle(tabFrames[2], "Dọn rác", "CleanDebris")
 
+-- Tab 3
 addToggle(tabFrames[3], "Tắt toàn bộ âm thanh", "MuteAllSounds", function(on) _G.ToggleMuteAllSounds(on) end)
 
+-- Tab 4
 addTextBox(tabFrames[4], "Khoảng cách hiển thị", "MAX_DISTANCE", 50, 1000)
 addTextBox(tabFrames[4], "Số zombie tối đa", "MAX_VISIBLE", 1, 50)
 addTextBox(tabFrames[4], "Góc nhìn (FOV)", "FOV_ANGLE", 30, 180)
 
+-- Tab 5
 addToggle(tabFrames[5], "Ẩn người chơi xa", "HidePlayers")
-addToggle(tabFrames[5], "Tăng tốc chạy (30)", "SpeedBoost", function(on)
-    if on then
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = 30
-        end
-    else
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = 16
-        end
-    end
-end)
+addToggle(tabFrames[5], "Tăng tốc chạy (30)", "SpeedBoost", setSpeedBoost)
 addWallButtons(tabFrames[5])
 
 local tip = Instance.new("TextLabel", tabFrames[5])
-tip.Size = UDim2.new(1,-12,0,50) tip.BackgroundColor3 = Color3.fromRGB(90,95,105) tip.BorderSizePixel = 0
-tip.Text = "💡 MẸO: Giảm Số zombie xuống 3-4" tip.TextColor3 = Color3.fromRGB(255,255,255)
+tip.Size = UDim2.new(1, -12, 0, 50) tip.BackgroundColor3 = Color3.fromRGB(90, 95, 105) tip.BorderSizePixel = 0
+tip.Text = "💡 MẸO: Giảm Số zombie xuống 3-4" tip.TextColor3 = Color3.fromRGB(255, 255, 255)
 tip.Font = Enum.Font.SourceSansBold tip.TextSize = 13 tip.TextXAlignment = Enum.TextXAlignment.Left
-Instance.new("UICorner", tip).CornerRadius = UDim.new(0,8) tip.LayoutOrder = #tabFrames[5]:GetChildren()
+Instance.new("UICorner", tip).CornerRadius = UDim.new(0, 8) tip.LayoutOrder = #tabFrames[5]:GetChildren()
 
--- Icon bật/tắt menu
 iconBtn.MouseButton1Click:Connect(function()
-    menu.Visible = not menu.Visible
-    iconBtn.BackgroundColor3 = menu.Visible and Color3.fromRGB(0,200,80) or Color3.fromRGB(255,80,80)
+	menu.Visible = not menu.Visible
+	iconBtn.BackgroundColor3 = menu.Visible and Color3.fromRGB(0, 200, 80) or Color3.fromRGB(255, 80, 80)
 end)
-closeBtn.MouseButton1Click:Connect(function()
-    menu.Visible = false
-    iconBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
-end)
+closeBtn.MouseButton1Click:Connect(function() menu.Visible = false iconBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80) end)
 
--- FPS loop
 local lt, fc = os.clock(), 0
 game:GetService("RunService").Heartbeat:Connect(function()
-    fc += 1; local n = os.clock()
-    if n - lt >= 0.5 then
-        local fps = math.floor(fc/(n-lt))
-        fpsL.Text = "FPS: " .. fps
-        fpsL.TextColor3 = fps>=30 and Color3.fromRGB(0,255,150) or fps>=15 and Color3.fromRGB(255,255,0) or Color3.fromRGB(255,80,80)
-        fc, lt = 0, n
-    end
+	fc += 1; local n = os.clock()
+	if n - lt >= 0.5 then
+		local fps = math.floor(fc / (n - lt))
+		fpsL.Text = "FPS: " .. fps
+		fpsL.TextColor3 = fps >= 30 and Color3.fromRGB(0, 255, 150) or fps >= 15 and Color3.fromRGB(255, 255, 0) or Color3.fromRGB(255, 80, 80)
+		fc, lt = 0, n
+	end
 end)
 
--- Hiện số balo THÔNG MINH (chỉ can thiệp nếu text có vẻ là số lượng)
 playerGui.DescendantAdded:Connect(function(o)
-    if o:IsA("TextLabel") then
-        local text = o.Text
-        -- Chỉ ép hiển thị nếu text chứa dấu "/" hoặc là chuỗi số thuần túy
-        if text:find("/") or tonumber(text) then
-            o.Visible = true
-            o:GetPropertyChangedSignal("Visible"):Connect(function()
-                if not o.Visible then o.Visible = true end
-            end)
-        end
-    end
+	if o:IsA("TextLabel") then
+		local t = o.Text
+		if t:find("/") or tonumber(t) then
+			o.Visible = true
+			o:GetPropertyChangedSignal("Visible"):Connect(function() if not o.Visible then o.Visible = true end end)
+		end
+	end
 end)
 
-notify("✨ Fix Lag đã sẵn sàng! (Text game không còn bị treo)")
-print("✅ GUI - Đã sửa lỗi text game")
+notify("✨ Fix Lag Pro đã sẵn sàng!")
+print("✅ GUI hoàn chỉnh!")
