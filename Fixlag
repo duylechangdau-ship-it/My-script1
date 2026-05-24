@@ -313,7 +313,7 @@ _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
 print("✅ FixLag Core - Extreme Low Graphics nâng cấp: tắt bóng triệt để + tắt hậu xử lý!")
--- FixLag GUI - MENU ĐẦY ĐỦ, ĐẸP, DỄ DÙNG
+-- FixLag GUI - ỔN ĐỊNH, KHÔNG NÚT LƯU CÀI ĐẶT
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
@@ -651,4 +651,4 @@ playerGui.DescendantAdded:Connect(function(o)
 end)
 
 notify("✨ Fix Lag Pro đã sẵn sàng!")
-print("✅ GUI hoàn chỉnh!")
+print("✅ GUI ổn định!")
