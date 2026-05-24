@@ -1,4 +1,4 @@
--- FixLag Core - ĐẦY ĐỦ CHỨC NĂNG, GIẢM ĐỒ HỌA TỐT
+-- FixLag Core - EXTREME LOW GRAPHICS NÂNG CẤP: TẮT BÓNG TRIỆT ĐỂ + TẮT HẬU XỬ LÝ + GIỮ VẬT PHẨM
 local Players = game:GetService("Players")
 local Workspace = game.Workspace
 local Lighting = game.Lighting
@@ -40,7 +40,7 @@ end
 
 local function scanZombies()
 	local now = os.clock()
-	if now - lastZombieScan < 5 then return zombieCache end
+	if now - lastZombieScan < 3 then return zombieCache end
 	lastZombieScan = now
 	table.clear(zombieCache)
 	for _, obj in pairs(Workspace:GetDescendants()) do
@@ -55,6 +55,14 @@ local function enableFullbright()
 	Lighting.Brightness, Lighting.ClockTime, Lighting.FogEnd = 3, 14, 99999
 	Lighting.GlobalShadows, Lighting.OutdoorAmbient, Lighting.Ambient = false, Color3.fromRGB(255,255,255), Color3.fromRGB(255,255,255)
 	Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 1, 0
+	-- Tắt hậu xử lý trong Fullbright
+	pcall(function()
+		if Lighting:FindFirstChildOfClass("BloomEffect") then Lighting:FindFirstChildOfClass("BloomEffect").Enabled = false end
+		if Lighting:FindFirstChildOfClass("BlurEffect") then Lighting:FindFirstChildOfClass("BlurEffect").Enabled = false end
+		if Lighting:FindFirstChildOfClass("ColorCorrectionEffect") then Lighting:FindFirstChildOfClass("ColorCorrectionEffect").Enabled = false end
+		if Lighting:FindFirstChildOfClass("SunRaysEffect") then Lighting:FindFirstChildOfClass("SunRaysEffect").Enabled = false end
+		if Lighting:FindFirstChildOfClass("DepthOfFieldEffect") then Lighting:FindFirstChildOfClass("DepthOfFieldEffect").Enabled = false end
+	end)
 end
 
 local function disableFullbright()
@@ -71,50 +79,97 @@ local function disableSky(enabled)
 	end
 end
 
+-- Extreme Low Graphics NÂNG CẤP
 local function applyExtremeLowGraphics()
 	if extremeGraphicsApplied then return end
 	extremeGraphicsApplied = true
-	Lighting.GlobalShadows, Lighting.Outlines = false, false
-	Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 0, 0
-	Lighting.FogEnd, Lighting.FogStart, Lighting.Brightness = 50, 0, 1
+
+	-- 1. Tắt bóng toàn bộ
+	Lighting.GlobalShadows = false
+	Lighting.Outlines = false
+
+	-- 2. Giảm chất lượng ánh sáng
+	Lighting.EnvironmentDiffuseScale = 0
+	Lighting.EnvironmentSpecularScale = 0
+	Lighting.Brightness = 1
+
+	-- 3. Tắt hiệu ứng hậu xử lý triệt để
+	pcall(function()
+		if Lighting:FindFirstChildOfClass("BloomEffect") then Lighting:FindFirstChildOfClass("BloomEffect").Enabled = false end
+		if Lighting:FindFirstChildOfClass("BlurEffect") then Lighting:FindFirstChildOfClass("BlurEffect").Enabled = false end
+		if Lighting:FindFirstChildOfClass("ColorCorrectionEffect") then Lighting:FindFirstChildOfClass("ColorCorrectionEffect").Enabled = false end
+		if Lighting:FindFirstChildOfClass("SunRaysEffect") then Lighting:FindFirstChildOfClass("SunRaysEffect").Enabled = false end
+		if Lighting:FindFirstChildOfClass("DepthOfFieldEffect") then Lighting:FindFirstChildOfClass("DepthOfFieldEffect").Enabled = false end
+	end)
+
+	-- 4. Sương mù gần để giảm render xa
+	Lighting.FogEnd = 100
+	Lighting.FogStart = 30
+
+	-- 5. Xử lý tất cả vật thể hiện có
 	for _, obj in pairs(Workspace:GetDescendants()) do
 		pcall(function()
-			if obj:IsA("BasePart") and not isCharacterPart(obj) then
-				obj.CastShadow, obj.Reflectance = false, 0
-				obj.Material = Enum.Material.SmoothPlastic
-			elseif obj:IsA("Texture") or obj:IsA("Decal") then
-				if not obj:IsDescendantOf(player:WaitForChild("PlayerGui")) then obj:Destroy() end
-			elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Explosion") then
+			-- TẮT BÓNG cho tất cả BasePart (kể cả zombie, người chơi)
+			if obj:IsA("BasePart") then
+				obj.CastShadow = false
+				obj.Reflectance = 0
+			end
+
+			-- CHỈ xóa hiệu ứng, KHÔNG xóa Texture/Decal (giữ vật phẩm)
+			if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
+				obj:Destroy()
+			elseif obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+				obj:Destroy()
+			elseif obj:IsA("Explosion") then
 				obj:Destroy()
 			elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
 				obj:Destroy()
 			end
-			-- Ẩn khối mờ
+
+			-- Ẩn khối mờ (part vốn đã trong suốt)
 			if obj:IsA("BasePart") and obj.Transparency > 0.2 and obj.Transparency < 1 and not isCharacterPart(obj) then
 				obj.Transparency = 1
 				for _, child in ipairs(obj:GetChildren()) do
-					if child:IsA("SurfaceGui") or child:IsA("BillboardGui") then child.Enabled = false end
+					if child:IsA("SurfaceGui") or child:IsA("BillboardGui") then
+						child.Enabled = false
+					end
 				end
 			end
 		end)
 	end
+
+	-- 6. Giảm chất lượng Terrain
 	pcall(function()
 		Workspace.Terrain.Decoration = false
-		Workspace.Terrain.WaterWaveSize, Workspace.Terrain.WaterWaveSpeed = 0, 0
-		Workspace.Terrain.WaterReflectance, Workspace.Terrain.WaterTransparency = 0, 1
+		Workspace.Terrain.WaterWaveSize = 0
+		Workspace.Terrain.WaterWaveSpeed = 0
+		Workspace.Terrain.WaterReflectance = 0
+		Workspace.Terrain.WaterTransparency = 1
 	end)
 end
 
+-- Khi có vật thể mới spawn
 Workspace.DescendantAdded:Connect(function(obj)
 	if extremeGraphicsApplied then
 		pcall(function()
-			if obj:IsA("BasePart") and not isCharacterPart(obj) then
-				obj.CastShadow, obj.Reflectance = false, 0
-				obj.Material = Enum.Material.SmoothPlastic
-			elseif (obj:IsA("Texture") or obj:IsA("Decal")) and not obj:IsDescendantOf(player:WaitForChild("PlayerGui")) then obj:Destroy()
-			elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Explosion") then obj:Destroy()
-			elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then obj:Destroy()
+			-- Tắt bóng cho mọi thứ mới
+			if obj:IsA("BasePart") then
+				obj.CastShadow = false
+				obj.Reflectance = 0
 			end
+
+			-- Chỉ xóa hiệu ứng, không xóa vật phẩm
+			if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
+				obj:Destroy()
+			elseif obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+				obj:Destroy()
+			elseif obj:IsA("Explosion") then
+				obj:Destroy()
+			elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
+				obj:Destroy()
+			end
+
+			-- Ẩn khối mờ mới
 			if obj:IsA("BasePart") and obj.Transparency > 0.2 and obj.Transparency < 1 and not isCharacterPart(obj) then
 				obj.Transparency = 1
 			end
@@ -247,7 +302,7 @@ local function cleanDebris()
 	end
 end
 
-task.spawn(function() while true do if Settings.MasterEnabled then pcall(optimizeZombies); pcall(hideFarPlayers) end task.wait(0.5) end end)
+task.spawn(function() while true do if Settings.MasterEnabled then pcall(optimizeZombies); pcall(hideFarPlayers) end task.wait(0.3) end end)
 task.spawn(function() while true do pcall(cleanDebris) task.wait(20) end end)
 
 _G.Settings = Settings
@@ -257,7 +312,7 @@ _G.DisableSky = disableSky
 _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
 
-print("✅ FixLag Core đã sẵn sàng!")
+print("✅ FixLag Core - Extreme Low Graphics nâng cấp: tắt bóng triệt để + tắt hậu xử lý!")
 -- FixLag GUI - MENU ĐẦY ĐỦ, ĐẸP, DỄ DÙNG
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
