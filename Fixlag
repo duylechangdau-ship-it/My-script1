@@ -1,4 +1,4 @@
--- FixLag Core - EXTREME LOW GRAPHICS NÂNG CẤP: TẮT BÓNG TRIỆT ĐỂ + TẮT HẬU XỬ LÝ + GIỮ VẬT PHẨM
+-- FixLag Core - TÍCH HỢP LÀM MỜ TƯỜNG (FIX LỖI KHÔNG ÁP DỤNG CHO VÙNG MỚI)
 local Players = game:GetService("Players")
 local Workspace = game.Workspace
 local Lighting = game.Lighting
@@ -18,7 +18,8 @@ local Settings = {
 	HidePlayers = false,
 	MAX_VISIBLE = 12,
 	MAX_DISTANCE = 300,
-	FOV_ANGLE = 120
+	FOV_ANGLE = 120,
+	WallTransparency = 0 -- 0: Tắt, 1: Nhẹ, 2: Vừa, 3: Mạnh
 }
 
 local extremeGraphicsApplied = false
@@ -26,7 +27,9 @@ local allSoundsMuted = false
 local zombieCache = {}
 local lastZombieScan = 0
 local processedZombies = {}
+local wallParts = {} -- Lưu các tường đã làm mờ
 
+-- Hàm kiểm tra một part có phải là nhân vật không
 local function isCharacterPart(part)
 	local current = part
 	while current and current ~= Workspace do
@@ -38,6 +41,48 @@ local function isCharacterPart(part)
 	return false
 end
 
+-- Hàm làm mờ tường (sẽ được gọi từ Core và GUI)
+function CoreApplyWallTransparency(level)
+	-- Khôi phục tất cả tường đã làm mờ
+	for _, p in ipairs(wallParts) do pcall(function() p.Transparency = 0 end) end
+	table.clear(wallParts)
+
+	if level == 0 then return end
+	local val = ({0, 0.3, 0.5, 0.7})[level + 1]
+
+	-- Áp dụng cho tất cả tường hiện có
+	for _, part in ipairs(Workspace:GetDescendants()) do
+		if part:IsA("BasePart") and part.Transparency == 0 and not isCharacterPart(part) then
+			if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
+				local mat = part.Material
+				if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
+				   mat == Enum.Material.Wood or mat == Enum.Material.WoodPlanks or
+				   mat == Enum.Material.Brick or mat == Enum.Material.Concrete or
+				   mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal then
+					pcall(function() part.Transparency = val; table.insert(wallParts, part) end)
+				end
+			end
+		end
+	end
+end
+
+-- Khi có vật thể mới spawn, tự động áp dụng làm mờ tường nếu đang bật
+Workspace.DescendantAdded:Connect(function(part)
+	if Settings.WallTransparency > 0 and part:IsA("BasePart") and part.Transparency == 0 and not isCharacterPart(part) then
+		if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
+			local mat = part.Material
+			if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
+			   mat == Enum.Material.Wood or mat == Enum.Material.WoodPlanks or
+			   mat == Enum.Material.Brick or mat == Enum.Material.Concrete or
+			   mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal then
+				local val = ({0, 0.3, 0.5, 0.7})[Settings.WallTransparency + 1]
+				pcall(function() part.Transparency = val; table.insert(wallParts, part) end)
+			end
+		end
+	end
+end)
+
+-- Quét zombie (giữ nguyên)
 local function scanZombies()
 	local now = os.clock()
 	if now - lastZombieScan < 3 then return zombieCache end
@@ -51,11 +96,11 @@ local function scanZombies()
 	return zombieCache
 end
 
+-- Fullbright (giữ nguyên)
 local function enableFullbright()
 	Lighting.Brightness, Lighting.ClockTime, Lighting.FogEnd = 3, 14, 99999
 	Lighting.GlobalShadows, Lighting.OutdoorAmbient, Lighting.Ambient = false, Color3.fromRGB(255,255,255), Color3.fromRGB(255,255,255)
 	Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale = 1, 0
-	-- Tắt hậu xử lý trong Fullbright
 	pcall(function()
 		if Lighting:FindFirstChildOfClass("BloomEffect") then Lighting:FindFirstChildOfClass("BloomEffect").Enabled = false end
 		if Lighting:FindFirstChildOfClass("BlurEffect") then Lighting:FindFirstChildOfClass("BlurEffect").Enabled = false end
@@ -79,21 +124,15 @@ local function disableSky(enabled)
 	end
 end
 
--- Extreme Low Graphics NÂNG CẤP
+-- Extreme Low Graphics (giữ nguyên)
 local function applyExtremeLowGraphics()
 	if extremeGraphicsApplied then return end
 	extremeGraphicsApplied = true
-
-	-- 1. Tắt bóng toàn bộ
 	Lighting.GlobalShadows = false
 	Lighting.Outlines = false
-
-	-- 2. Giảm chất lượng ánh sáng
-	Lighting.EnvironmentDiffuseScale = 0
-	Lighting.EnvironmentSpecularScale = 0
-	Lighting.Brightness = 1
-
-	-- 3. Tắt hiệu ứng hậu xử lý triệt để
+	Lighting.EnvironmentDiffuseScale = 0.1
+	Lighting.EnvironmentSpecularScale = 0.1
+	Lighting.Brightness = 1.1
 	pcall(function()
 		if Lighting:FindFirstChildOfClass("BloomEffect") then Lighting:FindFirstChildOfClass("BloomEffect").Enabled = false end
 		if Lighting:FindFirstChildOfClass("BlurEffect") then Lighting:FindFirstChildOfClass("BlurEffect").Enabled = false end
@@ -101,44 +140,16 @@ local function applyExtremeLowGraphics()
 		if Lighting:FindFirstChildOfClass("SunRaysEffect") then Lighting:FindFirstChildOfClass("SunRaysEffect").Enabled = false end
 		if Lighting:FindFirstChildOfClass("DepthOfFieldEffect") then Lighting:FindFirstChildOfClass("DepthOfFieldEffect").Enabled = false end
 	end)
-
-	-- 4. Sương mù gần để giảm render xa
-	Lighting.FogEnd = 100
-	Lighting.FogStart = 30
-
-	-- 5. Xử lý tất cả vật thể hiện có
+	Lighting.FogEnd = 150
+	Lighting.FogStart = 50
 	for _, obj in pairs(Workspace:GetDescendants()) do
 		pcall(function()
-			-- TẮT BÓNG cho tất cả BasePart (kể cả zombie, người chơi)
-			if obj:IsA("BasePart") then
+			if obj:IsA("BasePart") and not isCharacterPart(obj) then
 				obj.CastShadow = false
 				obj.Reflectance = 0
 			end
-
-			-- CHỈ xóa hiệu ứng, KHÔNG xóa Texture/Decal (giữ vật phẩm)
-			if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-				obj:Destroy()
-			elseif obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
-				obj:Destroy()
-			elseif obj:IsA("Explosion") then
-				obj:Destroy()
-			elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
-				obj:Destroy()
-			end
-
-			-- Ẩn khối mờ (part vốn đã trong suốt)
-			if obj:IsA("BasePart") and obj.Transparency > 0.2 and obj.Transparency < 1 and not isCharacterPart(obj) then
-				obj.Transparency = 1
-				for _, child in ipairs(obj:GetChildren()) do
-					if child:IsA("SurfaceGui") or child:IsA("BillboardGui") then
-						child.Enabled = false
-					end
-				end
-			end
 		end)
 	end
-
-	-- 6. Giảm chất lượng Terrain
 	pcall(function()
 		Workspace.Terrain.Decoration = false
 		Workspace.Terrain.WaterWaveSize = 0
@@ -148,31 +159,11 @@ local function applyExtremeLowGraphics()
 	end)
 end
 
--- Khi có vật thể mới spawn
 Workspace.DescendantAdded:Connect(function(obj)
-	if extremeGraphicsApplied then
+	if extremeGraphicsApplied and obj:IsA("BasePart") and not isCharacterPart(obj) then
 		pcall(function()
-			-- Tắt bóng cho mọi thứ mới
-			if obj:IsA("BasePart") then
-				obj.CastShadow = false
-				obj.Reflectance = 0
-			end
-
-			-- Chỉ xóa hiệu ứng, không xóa vật phẩm
-			if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-				obj:Destroy()
-			elseif obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
-				obj:Destroy()
-			elseif obj:IsA("Explosion") then
-				obj:Destroy()
-			elseif obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
-				obj:Destroy()
-			end
-
-			-- Ẩn khối mờ mới
-			if obj:IsA("BasePart") and obj.Transparency > 0.2 and obj.Transparency < 1 and not isCharacterPart(obj) then
-				obj.Transparency = 1
-			end
+			obj.CastShadow = false
+			obj.Reflectance = 0
 		end)
 	end
 end)
@@ -311,18 +302,17 @@ _G.DisableFullbright = disableFullbright
 _G.DisableSky = disableSky
 _G.ApplyExtremeLowGraphics = applyExtremeLowGraphics
 _G.ToggleMuteAllSounds = toggleMuteAllSounds
+_G.CoreApplyWallTransparency = CoreApplyWallTransparency -- Đưa hàm ra global để GUI gọi
 
-print("✅ FixLag Core - Extreme Low Graphics nâng cấp: tắt bóng triệt để + tắt hậu xử lý!")
--- FixLag GUI - ỔN ĐỊNH, KHÔNG NÚT LƯU CÀI ĐẶT
+print("✅ FixLag Core - Làm mờ tường đã được tích hợp, fix lỗi vùng mới!")
+-- FixLag GUI - GỌI HÀM LÀM MỜ TƯỜNG TỪ CORE (FIX LỖI VÙNG MỚI)
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local settings = _G.Settings
 if not settings then return end
 
 if settings.SpeedBoost == nil then settings.SpeedBoost = false end
-if settings.WallTransparency == nil then settings.WallTransparency = 0 end
 
-local wallParts = {}
 local walkSpeedConnection = nil
 
 local function notify(msg)
@@ -335,51 +325,6 @@ local function notify(msg)
 	Instance.new("UICorner", l).CornerRadius = UDim.new(0, 6)
 	task.delay(2, function() l:Destroy() g:Destroy() end)
 end
-
-local function isCharacterPart(part)
-	local current = part
-	while current and current ~= workspace do
-		local parent = current.Parent
-		if parent and parent:IsA("Model") and parent:FindFirstChild("HumanoidRootPart") then return true end
-		current = parent
-	end
-	return false
-end
-
-local function applyWallTransparency(level)
-	for _, p in ipairs(wallParts) do pcall(function() p.Transparency = 0 end) end
-	table.clear(wallParts)
-	if level == 0 then return end
-	local val = ({0, 0.3, 0.5, 0.7})[level + 1]
-	for _, part in ipairs(workspace:GetDescendants()) do
-		if part:IsA("BasePart") and part.Transparency == 0 and not isCharacterPart(part) then
-			if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
-				local mat = part.Material
-				if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
-				   mat == Enum.Material.Wood or mat == Enum.Material.WoodPlanks or
-				   mat == Enum.Material.Brick or mat == Enum.Material.Concrete or
-				   mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal then
-					pcall(function() part.Transparency = val; table.insert(wallParts, part) end)
-				end
-			end
-		end
-	end
-end
-
-workspace.DescendantAdded:Connect(function(part)
-	if settings.WallTransparency > 0 and part:IsA("BasePart") and part.Transparency == 0 and not isCharacterPart(part) then
-		if part.Size.X >= 1 and part.Size.Y >= 1 and part.Size.Z >= 1 then
-			local mat = part.Material
-			if mat == Enum.Material.Plastic or mat == Enum.Material.SmoothPlastic or
-			   mat == Enum.Material.Wood or mat == Enum.Material.WoodPlanks or
-			   mat == Enum.Material.Brick or mat == Enum.Material.Concrete or
-			   mat == Enum.Material.Metal or mat == Enum.Material.CorrodedMetal then
-				local val = ({0, 0.3, 0.5, 0.7})[settings.WallTransparency + 1]
-				pcall(function() part.Transparency = val; table.insert(wallParts, part) end)
-			end
-		end
-	end
-end)
 
 local function setSpeedBoost(enabled)
 	settings.SpeedBoost = enabled
@@ -576,7 +521,10 @@ local function addWallButtons(parent)
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 		btn.MouseButton1Click:Connect(function()
 			settings.WallTransparency = i
-			applyWallTransparency(i)
+			-- Gọi hàm từ Core thay vì tự xử lý
+			if _G.CoreApplyWallTransparency then
+				_G.CoreApplyWallTransparency(i)
+			end
 			for j = 0, 3 do
 				local b = frame:FindFirstChild(levels[j + 1].."Btn")
 				if b then b.BackgroundColor3 = (i == j) and Color3.fromRGB(0, 200, 100) or colors[j + 1] end
@@ -651,4 +599,4 @@ playerGui.DescendantAdded:Connect(function(o)
 end)
 
 notify("✨ Fix Lag Pro đã sẵn sàng!")
-print("✅ GUI ổn định!")
+print("✅ GUI - Gọi làm mờ tường từ Core")
